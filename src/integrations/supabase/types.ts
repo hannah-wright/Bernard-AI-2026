@@ -14,16 +14,309 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      data_sources: {
+        Row: {
+          confidence: Database["public"]["Enums"]["confidence_level"]
+          created_at: string | null
+          id: string
+          name: string
+          startup_id: string
+          url: string | null
+        }
+        Insert: {
+          confidence?: Database["public"]["Enums"]["confidence_level"]
+          created_at?: string | null
+          id?: string
+          name: string
+          startup_id: string
+          url?: string | null
+        }
+        Update: {
+          confidence?: Database["public"]["Enums"]["confidence_level"]
+          created_at?: string | null
+          id?: string
+          name?: string
+          startup_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funding_rounds: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string
+          id: string
+          lead_investors: string[] | null
+          round_type: Database["public"]["Enums"]["round_type"]
+          startup_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date: string
+          id?: string
+          lead_investors?: string[] | null
+          round_type: Database["public"]["Enums"]["round_type"]
+          startup_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          lead_investors?: string[] | null
+          round_type?: Database["public"]["Enums"]["round_type"]
+          startup_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funding_rounds_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          credits_remaining: number | null
+          email: string | null
+          full_name: string | null
+          id: string
+          subscription_tier: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          credits_remaining?: number | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          subscription_tier?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          credits_remaining?: number | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          subscription_tier?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      saved_filters: {
+        Row: {
+          created_at: string | null
+          filters: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filters: Json
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      startups: {
+        Row: {
+          buzz_score: number | null
+          city: string
+          country: string
+          created_at: string | null
+          description: string
+          eli5: string
+          estimated_revenue: string | null
+          estimated_size: string | null
+          id: string
+          logo: string | null
+          name: string
+          sectors: Database["public"]["Enums"]["sector_type"][]
+          state: string | null
+          updated_at: string | null
+          website: string
+        }
+        Insert: {
+          buzz_score?: number | null
+          city: string
+          country: string
+          created_at?: string | null
+          description: string
+          eli5: string
+          estimated_revenue?: string | null
+          estimated_size?: string | null
+          id?: string
+          logo?: string | null
+          name: string
+          sectors?: Database["public"]["Enums"]["sector_type"][]
+          state?: string | null
+          updated_at?: string | null
+          website: string
+        }
+        Update: {
+          buzz_score?: number | null
+          city?: string
+          country?: string
+          created_at?: string | null
+          description?: string
+          eli5?: string
+          estimated_revenue?: string | null
+          estimated_size?: string | null
+          id?: string
+          logo?: string | null
+          name?: string
+          sectors?: Database["public"]["Enums"]["sector_type"][]
+          state?: string | null
+          updated_at?: string | null
+          website?: string
+        }
+        Relationships: []
+      }
+      user_alerts: {
+        Row: {
+          created_at: string | null
+          filters: Json
+          id: string
+          is_active: boolean | null
+          name: string
+          notification_email: boolean | null
+          notification_slack: boolean | null
+          slack_webhook: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filters: Json
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notification_email?: boolean | null
+          notification_slack?: boolean | null
+          slack_webhook?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notification_email?: boolean | null
+          notification_slack?: boolean | null
+          slack_webhook?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      confidence_level: "verified" | "high" | "medium" | "low"
+      round_type:
+        | "Pre-Seed"
+        | "Seed"
+        | "Series A"
+        | "Series B"
+        | "Series C"
+        | "Series D+"
+      sector_type:
+        | "AI/ML"
+        | "Fintech"
+        | "Healthcare"
+        | "SaaS"
+        | "E-commerce"
+        | "Biotech"
+        | "Climate Tech"
+        | "Enterprise"
+        | "Consumer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +443,28 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      confidence_level: ["verified", "high", "medium", "low"],
+      round_type: [
+        "Pre-Seed",
+        "Seed",
+        "Series A",
+        "Series B",
+        "Series C",
+        "Series D+",
+      ],
+      sector_type: [
+        "AI/ML",
+        "Fintech",
+        "Healthcare",
+        "SaaS",
+        "E-commerce",
+        "Biotech",
+        "Climate Tech",
+        "Enterprise",
+        "Consumer",
+      ],
+    },
   },
 } as const
