@@ -88,6 +88,11 @@ const Auth = () => {
     if (!passwordResult.success) {
       newErrors.password = passwordResult.error.errors[0].message;
     }
+
+    // Require invite code for signup
+    if (!isLogin && !inviteCode.trim()) {
+      newErrors.inviteCode = 'An invite code is required to create an account';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -194,7 +199,7 @@ const Auth = () => {
                   <Label htmlFor="inviteCode" className="flex items-center gap-2">
                     <Ticket className="h-4 w-4" />
                     Invite Code
-                    <span className="text-xs text-muted-foreground">(optional)</span>
+                    <span className="text-xs text-destructive">*</span>
                   </Label>
                   <Input
                     id="inviteCode"
@@ -205,13 +210,12 @@ const Auth = () => {
                       setErrors((prev) => ({ ...prev, inviteCode: undefined }));
                     }}
                     placeholder="INVITE-CODE"
-                    className="bg-background font-mono uppercase"
+                    className={`bg-background font-mono uppercase ${errors.inviteCode ? 'border-destructive' : ''}`}
+                    required
                   />
-                  {inviteCode && (
-                    <p className="text-xs text-muted-foreground">
-                      Your invite code will be applied after signup to activate your trial.
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Enter the invite code you received to create your account.
+                  </p>
                   {errors.inviteCode && (
                     <p className="text-sm text-destructive">{errors.inviteCode}</p>
                   )}

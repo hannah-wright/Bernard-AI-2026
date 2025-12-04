@@ -38,7 +38,7 @@ export const Hero = ({ onStartScouting }: HeroProps) => {
             style={{ animationDelay: '300ms' }}
           >
             <Button variant="hero" size="xl" onClick={onStartScouting}>
-              Start scouting now
+              Request Access
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
             <Button variant="hero-outline" size="xl">
