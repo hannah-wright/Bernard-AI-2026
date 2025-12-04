@@ -258,19 +258,14 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
               </div>
             </div>
 
-            {/* Data Sources */}
+            {/* Data Verification */}
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Data Sources</h4>
-              <div className="flex flex-wrap gap-2">
-                {startup.dataSources.map((source, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 rounded-md bg-secondary px-3 py-1.5"
-                  >
-                    <span className="text-sm">{source.name}</span>
-                    <ConfidenceBadge level={source.confidence} />
-                  </div>
-                ))}
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Data Verification</h4>
+              <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
+                <ConfidenceBadge level={highestConfidence} />
+                <span className="text-sm text-muted-foreground">
+                  Verified from {startup.dataSources.length} independent source{startup.dataSources.length !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
 
