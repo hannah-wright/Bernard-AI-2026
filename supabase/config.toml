@@ -1,1 +1,4 @@
 project_id = "rkzscmfskerlanbsjugy"
+
+[functions.scrape-startups]
+verify_jwt = false
