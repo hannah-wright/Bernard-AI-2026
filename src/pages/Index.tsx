@@ -27,14 +27,50 @@ const Index = () => {
   } = useCredits();
 
   const handleCsvExport = () => {
-    const csvContent = startups.map(s => 
-      `${s.name},${s.location.city},${s.location.country},${s.sector.join(';')}`
-    ).join('\n');
-    const blob = new Blob([`Name,City,Country,Sectors\n${csvContent}`], { type: 'text/csv' });
+    const escapeCSV = (value: string | undefined | null) => {
+      if (!value) return '';
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const formatCurrency = (amount: number) => {
+      if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1)}B`;
+      if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
+      if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
+      return `$${amount}`;
+    };
+
+    const headers = [
+      'Name', 'Website', 'City', 'State', 'Country', 'Sectors',
+      'Funding Round', 'Funding Amount', 'Funding Date', 'Lead Investors',
+      'ELI5 Description', 'Est. Revenue', 'Est. Size', 'Buzz Score'
+    ].join(',');
+
+    const csvContent = startups.map(s => [
+      escapeCSV(s.name),
+      escapeCSV(s.website),
+      escapeCSV(s.location.city),
+      escapeCSV(s.location.state),
+      escapeCSV(s.location.country),
+      escapeCSV(s.sector.join('; ')),
+      escapeCSV(s.fundingRound.type),
+      escapeCSV(formatCurrency(s.fundingRound.amount)),
+      escapeCSV(s.fundingRound.date),
+      escapeCSV(s.fundingRound.leadInvestors.join('; ')),
+      escapeCSV(s.eli5),
+      escapeCSV(s.metrics.estimatedRevenue),
+      escapeCSV(s.metrics.estimatedSize),
+      s.metrics.buzzScore
+    ].join(',')).join('\n');
+
+    const blob = new Blob([`${headers}\n${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'startups-export.csv';
+    a.download = `bernardai-startups-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
