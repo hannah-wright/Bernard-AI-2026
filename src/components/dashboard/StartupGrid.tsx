@@ -53,7 +53,7 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
     return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
   });
 
-  const blurStartIndex = Math.max(0, filteredStartups.length - 4);
+  const blurStartIndex = 6; // Show first 6 startups, blur the rest
 
   return (
     <div className="flex-1">
