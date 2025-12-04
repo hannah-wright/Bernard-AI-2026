@@ -152,6 +152,68 @@ export type Database = {
           },
         ]
       }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          credits_granted: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          times_used: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          credits_granted?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          times_used?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          credits_granted?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          times_used?: number | null
+        }
+        Relationships: []
+      }
+      invite_redemptions: {
+        Row: {
+          id: string
+          invite_code_id: string
+          redeemed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invite_code_id: string
+          redeemed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invite_code_id?: string
+          redeemed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_redemptions_invite_code_id_fkey"
+            columns: ["invite_code_id"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,24 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Ticket } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [inviteCode, setInviteCode] = useState(searchParams.get('code') || '');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -26,12 +30,53 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
+      // If user just signed up and has an invite code, try to redeem it
+      if (inviteCode && !isLogin) {
+        redeemInviteCode();
+      } else {
+        navigate('/');
+      }
+    }
+  }, [user]);
+
+  const redeemInviteCode = async () => {
+    if (!inviteCode || isRedeemingCode) return;
+    
+    setIsRedeemingCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-invite', {
+        body: { code: inviteCode },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'Trial activated!',
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: 'Could not redeem invite code',
+          description: data.error || 'Please contact support.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      console.error('Error redeeming invite code:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to redeem invite code. You can try again from your account settings.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRedeemingCode(false);
       navigate('/');
     }
-  }, [user, navigate]);
+  };
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string; inviteCode?: string } = {};
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
@@ -96,7 +141,9 @@ const Auth = () => {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Please check your email to confirm your account.',
+            description: inviteCode 
+              ? 'Activating your trial...' 
+              : 'Please check your email to confirm your account.',
           });
         }
       }
@@ -121,7 +168,7 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight">BernardAI</h1>
+            <h1 className="font-serif text-3xl font-bold tracking-tight">BernardAI</h1>
             <p className="mt-2 text-muted-foreground">
               {isLogin ? 'Sign in to your account' : 'Create your account'}
             </p>
@@ -129,17 +176,46 @@ const Auth = () => {
           
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
-                  className="bg-background"
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode" className="flex items-center gap-2">
+                    <Ticket className="h-4 w-4" />
+                    Invite Code
+                    <span className="text-xs text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => {
+                      setInviteCode(e.target.value.toUpperCase());
+                      setErrors((prev) => ({ ...prev, inviteCode: undefined }));
+                    }}
+                    placeholder="INVITE-CODE"
+                    className="bg-background font-mono uppercase"
+                  />
+                  {inviteCode && (
+                    <p className="text-xs text-muted-foreground">
+                      Your invite code will be applied after signup to activate your trial.
+                    </p>
+                  )}
+                  {errors.inviteCode && (
+                    <p className="text-sm text-destructive">{errors.inviteCode}</p>
+                  )}
+                </div>
+              </>
             )}
             
             <div className="space-y-2">
@@ -192,9 +268,9 @@ const Auth = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRedeemingCode}
             >
-              {isSubmitting ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              {isSubmitting ? 'Please wait...' : isRedeemingCode ? 'Activating trial...' : isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
           

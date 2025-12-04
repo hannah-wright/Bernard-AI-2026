@@ -4,6 +4,7 @@ import { Download, Lock, Sparkles } from 'lucide-react';
 import { useBilling } from '@/hooks/useBilling';
 import { useAuth } from '@/hooks/useAuth';
 import { useCredits } from '@/hooks/useCredits';
+import { canExportCsv } from '@/config/billing';
 import { toast } from 'sonner';
 
 interface CsvExportCtaProps {
@@ -17,8 +18,8 @@ export const CsvExportCta = ({ onExport, startupCount = 0 }: CsvExportCtaProps) 
   const { subscription } = useBilling();
   const { deductCredits, checkCredits, getCost } = useCredits();
   
-  // CSV export is available on Growth and Scale plans
-  const hasExportAccess = subscription.plan === 'growth' || subscription.plan === 'scale';
+  // CSV export is available on Growth and Scale plans (not trial/free)
+  const hasExportAccess = canExportCsv(subscription.plan);
   const exportCost = getCost('export_csv');
   const canAfford = checkCredits('export_csv');
 
