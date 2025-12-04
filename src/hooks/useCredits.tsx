@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -16,29 +15,41 @@ const ACTION_COSTS: Record<CreditAction, number> = {
 };
 
 // Thresholds for warnings
-const LOW_CREDIT_THRESHOLD = 50;
+const LOW_CREDIT_PERCENT_THRESHOLD = 20; // Show modal at 20%
 const CRITICAL_CREDIT_THRESHOLD = 10;
 
 export const useCredits = () => {
   const { session, user } = useAuth();
   const { profile, refreshProfile } = useProfile();
   const { subscription } = useBilling();
-  const hasShownWarning = useRef<number | null>(null);
+  const hasShownModalThisSession = useRef<boolean>(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const credits = profile?.credits_remaining ?? 0;
   const monthlyCredits = subscription.plan 
     ? BILLING_CONFIG.plans[subscription.plan].monthlyCredits 
     : 0;
+  
+  const percentRemaining = monthlyCredits > 0 ? (credits / monthlyCredits) * 100 : 100;
 
-  // Check and show low credit warnings
+  // Check and show upgrade modal at 20% or below
+  useEffect(() => {
+    if (!user || monthlyCredits === 0) return;
+    
+    // Only show modal once per session when crossing 20% threshold
+    if (hasShownModalThisSession.current) return;
+    
+    if (percentRemaining <= LOW_CREDIT_PERCENT_THRESHOLD && credits > 0) {
+      hasShownModalThisSession.current = true;
+      setShowUpgradeModal(true);
+    }
+  }, [percentRemaining, credits, user, monthlyCredits]);
+
+  // Show critical toast separately
   useEffect(() => {
     if (!user || credits === 0) return;
     
-    // Only show warning once per threshold crossing
-    if (hasShownWarning.current === credits) return;
-    
     if (credits <= CRITICAL_CREDIT_THRESHOLD && credits > 0) {
-      hasShownWarning.current = credits;
       toast.warning(
         `Critical: Only ${credits} credits remaining!`,
         {
@@ -48,19 +59,6 @@ export const useCredits = () => {
             onClick: () => window.location.href = '/billing',
           },
           duration: 10000,
-        }
-      );
-    } else if (credits <= LOW_CREDIT_THRESHOLD && credits > CRITICAL_CREDIT_THRESHOLD) {
-      hasShownWarning.current = credits;
-      toast.info(
-        `Low credits: ${credits} remaining`,
-        {
-          description: 'Consider upgrading your plan for more credits.',
-          action: {
-            label: 'View Plans',
-            onClick: () => window.location.href = '/billing',
-          },
-          duration: 8000,
         }
       );
     }
@@ -164,7 +162,11 @@ export const useCredits = () => {
     checkCredits,
     deductCredits,
     getCost,
-    isLow: credits <= LOW_CREDIT_THRESHOLD,
+    percentRemaining,
+    isLow: percentRemaining <= LOW_CREDIT_PERCENT_THRESHOLD,
     isCritical: credits <= CRITICAL_CREDIT_THRESHOLD,
+    showUpgradeModal,
+    setShowUpgradeModal,
+    currentPlan: subscription.plan,
   };
 };
