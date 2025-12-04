@@ -60,7 +60,7 @@ export const Hero = ({ onStartScouting }: HeroProps) => {
             </div>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-foreground" />
-              <span>Built for forward-thinking VCs</span>
+              <span>Built for modern VCs</span>
             </div>
           </div>
         </div>
