@@ -1,5 +1,7 @@
 import { Startup, FilterState } from '@/types/startup';
 import { StartupCard } from './StartupCard';
+import { Button } from '@/components/ui/button';
+import { Lock } from 'lucide-react';
 
 interface StartupGridProps {
   startups: Startup[];
@@ -39,7 +41,7 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
       const locationMap: Record<string, string[]> = {
         usa: ['USA', 'United States'],
         uk: ['UK', 'United Kingdom'],
-        eu: ['Germany', 'France', 'Netherlands', 'Spain', 'Italy'],
+        eu: ['Germany', 'France', 'Netherlands', 'Spain', 'Italy', 'Poland'],
         asia: ['China', 'Japan', 'India', 'Singapore', 'South Korea'],
       };
       const validCountries = locationMap[filters.location] || [];
@@ -50,6 +52,8 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
   }).sort((a, b) => {
     return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
   });
+
+  const blurStartIndex = Math.max(0, filteredStartups.length - 4);
 
   return (
     <div className="flex-1">
@@ -64,15 +68,33 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
 
       {filteredStartups.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredStartups.map((startup, index) => (
-            <div
-              key={startup.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <StartupCard startup={startup} />
-            </div>
-          ))}
+          {filteredStartups.map((startup, index) => {
+            const isBlurred = index >= blurStartIndex;
+            
+            return (
+              <div
+                key={startup.id}
+                className="animate-fade-in relative"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className={isBlurred ? 'blur-sm pointer-events-none select-none' : ''}>
+                  <StartupCard startup={startup} />
+                </div>
+                
+                {isBlurred && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-lg">
+                    <div className="flex flex-col items-center gap-3 p-6 text-center">
+                      <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+                        <Lock className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <p className="font-medium text-foreground">Get full access</p>
+                      <Button size="sm">Request Access</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">
