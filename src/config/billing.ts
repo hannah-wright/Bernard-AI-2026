@@ -1,6 +1,11 @@
 // BernardAI Billing Configuration
 // All prices are in cents
 
+export const TRIAL_CONFIG = {
+  credits: 50,
+  features: ['50 credits (one-time)', '3 saved filters', 'No alerts/notifications'],
+} as const;
+
 export const BILLING_CONFIG = {
   // Subscription Plans
   plans: {
@@ -119,4 +124,26 @@ export function formatPrice(cents: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
+}
+
+// Check if subscription tier is a paid plan
+export function isPaidPlan(tier: string | null | undefined): boolean {
+  if (!tier) return false;
+  return ['starter', 'growth', 'scale'].includes(tier.toLowerCase());
+}
+
+// Check if subscription tier is trial
+export function isTrialPlan(tier: string | null | undefined): boolean {
+  return tier?.toLowerCase() === 'trial';
+}
+
+// Check if user can access alerts (paid users only)
+export function canAccessAlerts(tier: string | null | undefined): boolean {
+  return isPaidPlan(tier);
+}
+
+// Check if user can export CSV (growth+ plans)
+export function canExportCsv(tier: string | null | undefined): boolean {
+  if (!tier) return false;
+  return ['growth', 'scale'].includes(tier.toLowerCase());
 }
