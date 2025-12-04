@@ -14,7 +14,8 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  const [isLogin, setIsLogin] = useState(true);
+  const hasInviteCode = !!searchParams.get('code');
+  const [isLogin, setIsLogin] = useState(!hasInviteCode); // Default to signup if invite code present
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
