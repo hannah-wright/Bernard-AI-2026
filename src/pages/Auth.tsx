@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, ArrowLeft, Ticket } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Ticket, Mail } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,6 +23,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
@@ -145,12 +146,8 @@ const Auth = () => {
             });
           }
         } else {
-          toast({
-            title: 'Account created!',
-            description: inviteCode 
-              ? 'Activating your trial...' 
-              : 'Please check your email to confirm your account.',
-          });
+          // Show email confirmation message
+          setShowEmailConfirmation(true);
         }
       }
     } finally {
@@ -172,126 +169,164 @@ const Auth = () => {
       </div>
       
       <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h1 className="font-serif text-3xl font-bold tracking-tight">BernardAI</h1>
-            <p className="mt-2 text-muted-foreground">
-              {isLogin ? 'Sign in to your account' : 'Create your account'}
-            </p>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="bg-background"
-                  />
+        {showEmailConfirmation ? (
+          <div className="w-full max-w-md space-y-8 text-center">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="h-12 w-12 text-primary" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="inviteCode" className="flex items-center gap-2">
-                    <Ticket className="h-4 w-4" />
-                    Invite Code
-                    <span className="text-xs text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="inviteCode"
-                    type="text"
-                    value={inviteCode}
-                    onChange={(e) => {
-                      setInviteCode(e.target.value.toUpperCase());
-                      setErrors((prev) => ({ ...prev, inviteCode: undefined }));
-                    }}
-                    placeholder="INVITE-CODE"
-                    className={`bg-background font-mono uppercase ${errors.inviteCode ? 'border-destructive' : ''}`}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Enter the invite code you received to create your account.
-                  </p>
-                  {errors.inviteCode && (
-                    <p className="text-sm text-destructive">{errors.inviteCode}</p>
-                  )}
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground text-xs font-bold">1</span>
                 </div>
-              </>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                placeholder="you@example.com"
-                className={`bg-background ${errors.email ? 'border-destructive' : ''}`}
-                required
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+            <div className="space-y-3">
+              <h1 className="font-serif text-2xl font-bold tracking-tight">Almost there!</h1>
+              <p className="text-muted-foreground">
+                Please check your inbox to confirm your email address.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>
+              </p>
+            </div>
+
+            <div className="pt-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Didn't receive the email? Check your spam folder or try again.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailConfirmation(false)}
+                className="text-sm"
+              >
+                Back to sign up
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full max-w-md space-y-8">
+            <div className="text-center">
+              <h1 className="font-serif text-3xl font-bold tracking-tight">BernardAI</h1>
+              <p className="mt-2 text-muted-foreground">
+                {isLogin ? 'Sign in to your account' : 'Create your account'}
+              </p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {!isLogin && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="John Doe"
+                      className="bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="inviteCode" className="flex items-center gap-2">
+                      <Ticket className="h-4 w-4" />
+                      Invite Code
+                      <span className="text-xs text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="inviteCode"
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => {
+                        setInviteCode(e.target.value.toUpperCase());
+                        setErrors((prev) => ({ ...prev, inviteCode: undefined }));
+                      }}
+                      placeholder="INVITE-CODE"
+                      className={`bg-background font-mono uppercase ${errors.inviteCode ? 'border-destructive' : ''}`}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the invite code you received to create your account.
+                    </p>
+                    {errors.inviteCode && (
+                      <p className="text-sm text-destructive">{errors.inviteCode}</p>
+                    )}
+                  </div>
+                </>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
+                  id="email"
+                  type="email"
+                  value={email}
                   onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrors((prev) => ({ ...prev, password: undefined }));
+                    setEmail(e.target.value);
+                    setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
-                  placeholder="••••••••"
-                  className={`bg-background pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                  placeholder="you@example.com"
+                  className={`bg-background ${errors.email ? 'border-destructive' : ''}`}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
               </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-            </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
+                    placeholder="••••••••"
+                    className={`bg-background pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
+              </div>
+              
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || isRedeemingCode}
+              >
+                {isSubmitting ? 'Please wait...' : isRedeemingCode ? 'Activating trial...' : isLogin ? 'Sign In' : 'Create Account'}
+              </Button>
+            </form>
             
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting || isRedeemingCode}
-            >
-              {isSubmitting ? 'Please wait...' : isRedeemingCode ? 'Activating trial...' : isLogin ? 'Sign In' : 'Create Account'}
-            </Button>
-          </form>
-          
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setErrors({});
+                }}
+                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              >
+                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
