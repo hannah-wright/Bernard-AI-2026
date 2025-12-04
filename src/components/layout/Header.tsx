@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Bell, User, LogOut } from 'lucide-react';
+import { useBilling } from '@/hooks/useBilling';
+import { BILLING_CONFIG } from '@/config/billing';
+import { Search, Bell, User, LogOut, CreditCard } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +14,16 @@ import {
 
 export const Header = () => {
   const { user, signOut } = useAuth();
+  const { subscription } = useBilling();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
   };
+
+  const planName = subscription.plan 
+    ? BILLING_CONFIG.plans[subscription.plan].name 
+    : 'Free';
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -30,7 +37,7 @@ export const Header = () => {
               <span className="font-semibold text-lg">BernardAI</span>
             </a>
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#" className="text-sm font-medium text-foreground">
+              <a href="/" className="text-sm font-medium text-foreground">
                 Dashboard
               </a>
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -39,7 +46,7 @@ export const Header = () => {
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Saved
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/billing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Pricing
               </a>
             </nav>
@@ -64,8 +71,16 @@ export const Header = () => {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
                     <p className="text-sm font-medium">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">Free Plan • 10 credits</p>
+                    <p className="text-xs text-muted-foreground">
+                      {planName} Plan
+                      {subscription.isAnnual && ' (Annual)'}
+                    </p>
                   </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/billing')}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Billing & Plans
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="h-4 w-4 mr-2" />
@@ -79,8 +94,8 @@ export const Header = () => {
               </Button>
             )}
             
-            {user && (
-              <Button size="sm" className="hidden sm:flex">
+            {user && !subscription.subscribed && (
+              <Button size="sm" className="hidden sm:flex" onClick={() => navigate('/billing')}>
                 Upgrade
               </Button>
             )}
