@@ -9,12 +9,35 @@ import { FilterState } from '@/types/startup';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCredits } from '@/hooks/useCredits';
+import { UpgradeModal } from '@/components/billing/UpgradeModal';
+import { CsvExportCta } from '@/components/billing/CsvExportCta';
 
 const Index = () => {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { data: startups = [], isLoading } = useStartups();
   const { mutate: scrapeStartups, isPending: isScraping } = useScrapeStartups();
+  const { 
+    credits, 
+    monthlyCredits, 
+    showUpgradeModal, 
+    setShowUpgradeModal, 
+    currentPlan 
+  } = useCredits();
+
+  const handleCsvExport = () => {
+    const csvContent = startups.map(s => 
+      `${s.name},${s.location.city},${s.location.country},${s.sector.join(';')}`
+    ).join('\n');
+    const blob = new Blob([`Name,City,Country,Sectors\n${csvContent}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'startups-export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   
   const [filters, setFilters] = useState<FilterState>({
     dateRange: '365',
@@ -37,8 +60,11 @@ const Index = () => {
         <StatsBar />
         
         <div ref={dashboardRef} className="container mx-auto px-4 py-8">
-          {user && (
-            <div className="flex justify-end mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-3">
+              <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
+            </div>
+            {user && (
               <Button
                 variant="outline"
                 onClick={() => scrapeStartups()}
@@ -56,8 +82,8 @@ const Index = () => {
                   </>
                 )}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           
           <div className="flex flex-col lg:flex-row gap-6">
             <FilterSidebar filters={filters} onFiltersChange={setFilters} />
@@ -71,6 +97,14 @@ const Index = () => {
           </div>
         </div>
       </main>
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        creditsRemaining={credits}
+        monthlyCredits={monthlyCredits}
+        currentPlan={currentPlan}
+      />
     </div>
   );
 };
