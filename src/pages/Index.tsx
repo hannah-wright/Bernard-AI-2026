@@ -17,7 +17,7 @@ const Index = () => {
   const { mutate: scrapeStartups, isPending: isScraping } = useScrapeStartups();
   
   const [filters, setFilters] = useState<FilterState>({
-    dateRange: '30',
+    dateRange: '9999',
     fundingMin: undefined,
     fundingMax: undefined,
     roundTypes: [],
