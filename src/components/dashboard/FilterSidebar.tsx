@@ -21,6 +21,7 @@ const dateRanges = [
   { value: '90', label: 'Last 3 months' },
   { value: '180', label: 'Last 6 months' },
   { value: '365', label: 'Last year' },
+  { value: '9999', label: 'All time' },
 ];
 
 interface FilterSidebarProps {
