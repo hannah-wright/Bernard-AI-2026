@@ -47,6 +47,8 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
     }
 
     return true;
+  }).sort((a, b) => {
+    return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
   });
 
   return (
