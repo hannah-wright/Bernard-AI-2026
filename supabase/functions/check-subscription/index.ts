@@ -105,11 +105,15 @@ serve(async (req) => {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
     });
 
-    // Update profile with subscription tier
-    await supabaseClient
-      .from('profiles')
-      .update({ subscription_tier: productId })
-      .eq('id', user.id);
+    // Update profile with subscription tier using admin function
+    const { error: updateError } = await supabaseClient.rpc('admin_update_profile', {
+      target_user_id: user.id,
+      new_tier: productId,
+    });
+    
+    if (updateError) {
+      logStep("ERROR updating subscription tier", { error: updateError.message });
+    }
 
     return new Response(JSON.stringify({
       subscribed: subscription.status === 'active' || subscription.status === 'trialing',

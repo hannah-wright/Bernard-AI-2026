@@ -86,11 +86,17 @@ serve(async (req) => {
               const currentCredits = profile?.credits_remaining || 0;
               const newCredits = currentCredits + creditsToAdd;
 
-              // Update credits
-              await supabase
-                .from("profiles")
-                .update({ credits_remaining: newCredits })
-                .eq("id", userId);
+              // Use admin_update_profile function to bypass security trigger
+              const { error: updateError } = await supabase.rpc('admin_update_profile', {
+                target_user_id: userId,
+                new_credits: newCredits,
+              });
+
+              if (updateError) {
+                logStep("ERROR updating credits for purchase", { error: updateError.message });
+              } else {
+                logStep("Credits added for purchase", { userId, creditsToAdd, newCredits });
+              }
 
               // Log transaction
               await supabase.from("credit_transactions").insert({
@@ -100,8 +106,6 @@ serve(async (req) => {
                 description: `Purchased ${creditsToAdd} credits`,
                 stripe_payment_id: session.payment_intent as string,
               });
-
-              logStep("Credits added for purchase", { userId, creditsToAdd, newCredits });
             }
           }
         }
@@ -114,14 +118,18 @@ serve(async (req) => {
           const creditsToAdd = PLAN_CREDITS[productId] || 0;
 
           if (userId && creditsToAdd > 0) {
-            // Set credits for new subscription
-            await supabase
-              .from("profiles")
-              .update({ 
-                credits_remaining: creditsToAdd,
-                subscription_tier: productId 
-              })
-              .eq("id", userId);
+            // Use admin_update_profile function to bypass security trigger
+            const { error: updateError } = await supabase.rpc('admin_update_profile', {
+              target_user_id: userId,
+              new_credits: creditsToAdd,
+              new_tier: productId
+            });
+
+            if (updateError) {
+              logStep("ERROR updating profile", { error: updateError.message });
+            } else {
+              logStep("Credits set for new subscription", { userId, productId, creditsToAdd });
+            }
 
             // Log transaction
             await supabase.from("credit_transactions").insert({
@@ -131,8 +139,6 @@ serve(async (req) => {
               description: `Subscription started - ${creditsToAdd} credits`,
               stripe_subscription_id: subscription.id,
             });
-
-            logStep("Credits set for new subscription", { userId, productId, creditsToAdd });
           }
         }
         break;
@@ -157,14 +163,25 @@ serve(async (req) => {
               .maybeSingle();
 
             if (profile) {
-              // Add credits (could also reset - business decision)
-              // Here we're adding to existing to not lose unused credits
+              // Add credits to existing balance
               const newCredits = (profile.credits_remaining || 0) + creditsToAdd;
 
-              await supabase
-                .from("profiles")
-                .update({ credits_remaining: newCredits })
-                .eq("id", profile.id);
+              // Use admin_update_profile function to bypass security trigger
+              const { error: updateError } = await supabase.rpc('admin_update_profile', {
+                target_user_id: profile.id,
+                new_credits: newCredits,
+              });
+
+              if (updateError) {
+                logStep("ERROR updating profile for renewal", { error: updateError.message });
+              } else {
+                logStep("Credits added for renewal", { 
+                  userId: profile.id, 
+                  productId, 
+                  creditsToAdd,
+                  newCredits 
+                });
+              }
 
               // Log transaction
               await supabase.from("credit_transactions").insert({
@@ -173,13 +190,6 @@ serve(async (req) => {
                 type: "subscription_renewal",
                 description: `Monthly renewal - ${creditsToAdd} credits added`,
                 stripe_subscription_id: subscription.id,
-              });
-
-              logStep("Credits added for renewal", { 
-                userId: profile.id, 
-                productId, 
-                creditsToAdd,
-                newCredits 
               });
             }
           }
@@ -205,12 +215,17 @@ serve(async (req) => {
               .maybeSingle();
 
             if (profile) {
-              await supabase
-                .from("profiles")
-                .update({ subscription_tier: newProductId })
-                .eq("id", profile.id);
+              // Use admin_update_profile function to bypass security trigger
+              const { error: updateError } = await supabase.rpc('admin_update_profile', {
+                target_user_id: profile.id,
+                new_tier: newProductId,
+              });
 
-              logStep("Subscription tier updated", { userId: profile.id, newProductId });
+              if (updateError) {
+                logStep("ERROR updating subscription tier", { error: updateError.message });
+              } else {
+                logStep("Subscription tier updated", { userId: profile.id, newProductId });
+              }
             }
           }
         }
@@ -229,14 +244,15 @@ serve(async (req) => {
             .maybeSingle();
 
           if (profile) {
-            // Reset to free tier
-            await supabase
-              .from("profiles")
-              .update({ 
-                subscription_tier: 'free',
-                // Keep remaining credits - they paid for them
-              })
-              .eq("id", profile.id);
+            // Use admin_update_profile function to reset to free tier
+            const { error: updateError } = await supabase.rpc('admin_update_profile', {
+              target_user_id: profile.id,
+              new_tier: 'free',
+            });
+
+            if (updateError) {
+              logStep("ERROR resetting to free tier", { error: updateError.message });
+            }
 
             // Log transaction
             await supabase.from("credit_transactions").insert({
