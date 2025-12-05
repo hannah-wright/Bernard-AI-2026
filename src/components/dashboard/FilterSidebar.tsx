@@ -44,7 +44,7 @@ import { useCountries, useMetros } from '@/hooks/useCountries';
 
 type FundingUnit = 'K' | 'M';
 
-const roundTypes: RoundType[] = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series D+'];
+const roundTypes: RoundType[] = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series D+', 'Bootstrapped'];
 const sectors: Sector[] = ['AI/ML', 'Fintech', 'Healthcare', 'SaaS', 'E-commerce', 'Biotech', 'Climate Tech', 'Enterprise', 'Consumer'];
 const regions: Region[] = ['US', 'EU', 'LATAM', 'APAC', 'MEA', 'Remote/Global'];
 const businessModels: BusinessModel[] = ['B2B', 'B2C', 'B2B2C'];

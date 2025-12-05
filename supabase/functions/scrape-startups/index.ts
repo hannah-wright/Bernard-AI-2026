@@ -110,7 +110,11 @@ function parseStartupData(html: string, sourceName: string, sourceUrl: string, c
   const companyNamePattern = /([A-Z][a-zA-Z0-9]*(?:\s+[A-Z][a-zA-Z0-9]*)*)\s+(?:raises?|secures?|closes?|announces?|gets?)\s+\$(\d+(?:\.\d+)?)\s*(million|billion|M|B)/gi
   
   // Extract round types
-  const roundTypes = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series D+']
+  const roundTypes = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series D+', 'Bootstrapped']
+  
+  // Patterns for bootstrapped/revenue startups (IndieHackers, StarterStory)
+  const revenuePattern = /([A-Z][a-zA-Z0-9]*(?:\s+[A-Z][a-zA-Z0-9]*)*)[^$]*?\$(\d+(?:,\d+)?(?:\.\d+)?)[kK]?\/(?:month|mo|MRR)|MRR[:\s]+\$(\d+(?:,\d+)?(?:\.\d+)?)[kK]?/gi
+  const bootstrappedKeywords = ['bootstrapped', 'self-funded', 'no funding', 'profitable', 'indie', 'solo founder', 'revenue:', 'mrr:', 'arr:']
   
   // Parse article content for funding news
   const articleMatches = html.match(/<article[^>]*>[\s\S]*?<\/article>/gi) || []
@@ -144,10 +148,16 @@ function parseStartupData(html: string, sourceName: string, sourceUrl: string, c
     const contextEnd = Math.min(allContent.length, match.index + 200)
     const context = allContent.substring(contextStart, contextEnd).toLowerCase()
     
-    for (const round of roundTypes) {
-      if (context.includes(round.toLowerCase())) {
-        detectedRound = round
-        break
+    // Check for bootstrapped signals first
+    const isBootstrapped = bootstrappedKeywords.some(kw => context.includes(kw))
+    if (isBootstrapped) {
+      detectedRound = 'Bootstrapped'
+    } else {
+      for (const round of roundTypes) {
+        if (round !== 'Bootstrapped' && context.includes(round.toLowerCase())) {
+          detectedRound = round
+          break
+        }
       }
     }
     
