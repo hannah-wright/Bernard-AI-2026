@@ -175,13 +175,15 @@ const Billing = () => {
                       {subscription.cancelAtPeriodEnd && <Badge variant="destructive">Cancelled</Badge>}
                     </CardTitle>
                     <CardDescription className="mt-1">
-                      {subscription.subscriptionEnd && (
-                        subscription.cancelAtPeriodEnd ? (
-                          <>Subscription cancelled. You have access until {new Date(subscription.subscriptionEnd).toLocaleDateString()}</>
+                      {subscription.cancelAtPeriodEnd ? (
+                        subscription.subscriptionEnd ? (
+                          <>Subscription cancelled. You have access until {new Date(subscription.subscriptionEnd).toLocaleDateString()}.</>
                         ) : (
-                          <>Renews: {new Date(subscription.subscriptionEnd).toLocaleDateString()}</>
+                          <>Subscription cancelled. You have access until the end of your billing period.</>
                         )
-                      )}
+                      ) : subscription.subscriptionEnd ? (
+                        <>Renews: {new Date(subscription.subscriptionEnd).toLocaleDateString()}</>
+                      ) : null}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">

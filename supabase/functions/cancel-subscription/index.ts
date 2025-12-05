@@ -104,6 +104,12 @@ serve(async (req) => {
       throw new Error("Invalid action. Use 'cancel', 'pause', 'resume', or 'reactivate'");
     }
 
+    const currentPeriodEnd = result.current_period_end 
+      ? new Date(result.current_period_end * 1000).toISOString()
+      : null;
+
+    logStep("Returning success response", { currentPeriodEnd });
+
     return new Response(JSON.stringify({
       success: true,
       subscription: {
@@ -111,7 +117,7 @@ serve(async (req) => {
         status: result.status,
         cancelAtPeriodEnd: result.cancel_at_period_end,
         pauseCollection: result.pause_collection,
-        currentPeriodEnd: new Date(result.current_period_end * 1000).toISOString(),
+        currentPeriodEnd,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
