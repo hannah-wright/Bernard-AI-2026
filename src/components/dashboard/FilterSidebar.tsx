@@ -40,6 +40,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { locationData, getMetrosForCountries } from '@/data/locationData';
+import { useCountries } from '@/hooks/useCountries';
 
 type FundingUnit = 'K' | 'M';
 
@@ -96,6 +97,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   const [fundingUnit, setFundingUnit] = useState<FundingUnit>('M');
   const [totalRaisedUnit, setTotalRaisedUnit] = useState<FundingUnit>('M');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: dbCountries = [] } = useCountries();
 
   const getActualValue = (displayValue: number | undefined, unit: FundingUnit): number | undefined => {
     if (displayValue === undefined) return undefined;
@@ -366,33 +368,37 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
       {/* Location - HQ Region & Metro drill-down */}
       <FilterSection title="HQ Region" defaultOpen>
         <div className="space-y-3">
-          {/* Region/Country selector */}
+          {/* Region/Country selector - dynamically loaded from database */}
           <div className="space-y-2">
             <div className="max-h-48 overflow-y-auto space-y-2 rounded-md border border-border p-2">
-              {locationData.map((country) => (
-                <div key={country.code} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`country-${country.code}`}
-                    checked={filters.countries.includes(country.code)}
-                    onCheckedChange={(checked) => {
-                      const newCountries = checked 
-                        ? [...filters.countries, country.code]
-                        : filters.countries.filter(c => c !== country.code);
-                      // Clear metros that no longer belong to selected countries
-                      const availableMetros = getMetrosForCountries(newCountries);
-                      const availableMetroIds = availableMetros.map(m => m.id);
-                      const newMetros = filters.metros.filter(m => availableMetroIds.includes(m));
-                      onFiltersChange({ ...filters, countries: newCountries, metros: newMetros });
-                    }}
-                  />
-                  <label
-                    htmlFor={`country-${country.code}`}
-                    className="text-sm leading-none cursor-pointer"
-                  >
-                    {country.name}
-                  </label>
-                </div>
-              ))}
+              {dbCountries.length === 0 ? (
+                <span className="text-xs text-muted-foreground">Loading countries...</span>
+              ) : (
+                dbCountries.map((country) => (
+                  <div key={country.code} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`country-${country.code}`}
+                      checked={filters.countries.includes(country.code)}
+                      onCheckedChange={(checked) => {
+                        const newCountries = checked 
+                          ? [...filters.countries, country.code]
+                          : filters.countries.filter(c => c !== country.code);
+                        // Clear metros that no longer belong to selected countries
+                        const availableMetros = getMetrosForCountries(newCountries);
+                        const availableMetroIds = availableMetros.map(m => m.id);
+                        const newMetros = filters.metros.filter(m => availableMetroIds.includes(m));
+                        onFiltersChange({ ...filters, countries: newCountries, metros: newMetros });
+                      }}
+                    />
+                    <label
+                      htmlFor={`country-${country.code}`}
+                      className="text-sm leading-none cursor-pointer"
+                    >
+                      {country.name}
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -438,7 +444,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
           {(filters.countries.length > 0 || filters.metros.length > 0) && (
             <div className="flex flex-wrap gap-1 pt-1">
               {filters.countries.map(code => {
-                const country = locationData.find(c => c.code === code);
+                const country = dbCountries.find(c => c.code === code);
                 return country ? (
                   <Badge 
                     key={code} 
