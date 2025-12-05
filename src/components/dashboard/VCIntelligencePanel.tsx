@@ -13,15 +13,23 @@ import {
   GraduationCap,
   Briefcase,
   DollarSign,
-  Trophy
+  Trophy,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { methodologyText, MethodologyTooltip, DataLabel } from './DataMethodologyTooltips';
 
 interface VCIntelligencePanelProps {
   startup: Startup;
 }
 
-const ScoreBadge = ({ score, label }: { score?: number; label: string }) => {
+interface ScoreBadgeProps {
+  score?: number;
+  label: string;
+  tooltip?: string;
+}
+
+const ScoreBadge = ({ score, label, tooltip }: ScoreBadgeProps) => {
   if (score === undefined) return null;
   
   const getScoreColor = (s: number) => {
@@ -33,7 +41,10 @@ const ScoreBadge = ({ score, label }: { score?: number; label: string }) => {
 
   return (
     <div className="flex flex-col items-center p-3 rounded-lg bg-secondary/30 border border-border">
-      <span className="text-xs text-muted-foreground mb-1">{label}</span>
+      <div className="flex items-center gap-1 mb-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {tooltip && <MethodologyTooltip text={tooltip} />}
+      </div>
       <span className={cn('text-2xl font-bold rounded-full px-3 py-1 border', getScoreColor(score))}>
         {score}
       </span>
@@ -41,10 +52,17 @@ const ScoreBadge = ({ score, label }: { score?: number; label: string }) => {
   );
 };
 
-const SectionHeader = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
+interface SectionHeaderProps {
+  icon: React.ElementType;
+  title: string;
+  tooltip?: string;
+}
+
+const SectionHeader = ({ icon: Icon, title, tooltip }: SectionHeaderProps) => (
   <div className="flex items-center gap-2 mb-3">
     <Icon className="h-4 w-4 text-muted-foreground" />
     <h4 className="text-sm font-medium">{title}</h4>
+    {tooltip && <MethodologyTooltip text={tooltip} />}
   </div>
 );
 
@@ -122,10 +140,10 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* AI Scores */}
       {hasScores && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <ScoreBadge score={startup.unicornProbability} label="Unicorn Probability" />
-          <ScoreBadge score={startup.teamQualityScore} label="Team Quality" />
-          <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" />
-          <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" />
+          <ScoreBadge score={startup.unicornProbability} label="Unicorn Probability" tooltip={methodologyText.unicornProbability} />
+          <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality} />
+          <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore} />
+          <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness} />
         </div>
       )}
 
@@ -202,42 +220,42 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* Traction & Unit Economics */}
       {hasTractionData && (
         <div>
-          <SectionHeader icon={TrendingUp} title="Traction & Unit Economics" />
+          <SectionHeader icon={TrendingUp} title="Traction & Unit Economics" tooltip="Key performance metrics. Some values estimated from public data and benchmarks." />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {startup.tractionMetrics?.arr && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">ARR</p>
-                <p className="font-semibold">{formatCurrency(startup.tractionMetrics.arr)}</p>
+                <DataLabel label="ARR" isEstimated tooltip={methodologyText.arr} />
+                <p className="font-semibold text-foreground/80">{formatCurrency(startup.tractionMetrics.arr)}</p>
               </div>
             )}
             {startup.tractionMetrics?.paying_customers && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">Paying Customers</p>
-                <p className="font-semibold">{startup.tractionMetrics.paying_customers}</p>
+                <DataLabel label="Paying Customers" isEstimated tooltip={methodologyText.payingCustomers} />
+                <p className="font-semibold text-foreground/80">{startup.tractionMetrics.paying_customers}</p>
               </div>
             )}
             {startup.tractionMetrics?.net_revenue_retention_pct && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">NRR</p>
-                <p className="font-semibold">{startup.tractionMetrics.net_revenue_retention_pct}%</p>
+                <DataLabel label="NRR" isEstimated tooltip={methodologyText.nrr} />
+                <p className="font-semibold text-foreground/80">{startup.tractionMetrics.net_revenue_retention_pct}%</p>
               </div>
             )}
             {startup.unitEconomics?.ltv_cac_ratio && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">LTV:CAC</p>
-                <p className="font-semibold">{startup.unitEconomics.ltv_cac_ratio}x</p>
+                <DataLabel label="LTV:CAC" isEstimated tooltip={methodologyText.ltvCac} />
+                <p className="font-semibold text-foreground/80">{startup.unitEconomics.ltv_cac_ratio}x</p>
               </div>
             )}
             {startup.unitEconomics?.gross_margin_pct && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">Gross Margin</p>
-                <p className="font-semibold">{startup.unitEconomics.gross_margin_pct}%</p>
+                <DataLabel label="Gross Margin" isEstimated tooltip={methodologyText.grossMargin} />
+                <p className="font-semibold text-foreground/80">{startup.unitEconomics.gross_margin_pct}%</p>
               </div>
             )}
             {startup.unitEconomics?.runway_months && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">Runway</p>
-                <p className="font-semibold">{startup.unitEconomics.runway_months} mo</p>
+                <DataLabel label="Runway" isEstimated tooltip={methodologyText.runway} />
+                <p className="font-semibold text-foreground/80">{startup.unitEconomics.runway_months} mo</p>
               </div>
             )}
           </div>
@@ -257,7 +275,7 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* Product & Defensibility */}
       {hasProductData && (
         <div>
-          <SectionHeader icon={Shield} title="Product & Defensibility" />
+          <SectionHeader icon={Shield} title="Product & Defensibility" tooltip="Factors that create sustainable competitive advantage and barriers to entry." />
           <div className="space-y-3">
             {startup.productInfo && (
               <div className="flex flex-wrap gap-2">
@@ -275,27 +293,31 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
             {startup.defensibilitySignals && (
               <div className="grid grid-cols-2 gap-2">
                 {startup.defensibilitySignals.proprietary_data && (
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-xs group">
                     <Zap className="h-3 w-3 text-green-500" />
                     <span>Proprietary Data</span>
+                    <MethodologyTooltip text={methodologyText.proprietaryData} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
                 {startup.defensibilitySignals.network_effects && (
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-xs group">
                     <Zap className="h-3 w-3 text-green-500" />
                     <span>Network Effects</span>
+                    <MethodologyTooltip text={methodologyText.networkEffects} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
                 {startup.defensibilitySignals.patents_filed && (
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-xs group">
                     <Shield className="h-3 w-3 text-blue-500" />
                     <span>{startup.defensibilitySignals.patents_filed} Patents Filed</span>
+                    <MethodologyTooltip text={methodologyText.patents} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
                 {startup.defensibilitySignals.switching_cost_level && (
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-xs group">
                     <Target className="h-3 w-3" />
                     <span>{startup.defensibilitySignals.switching_cost_level} Switching Cost</span>
+                    <MethodologyTooltip text={methodologyText.switchingCost} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
               </div>
@@ -353,7 +375,7 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* Social Proof */}
       {hasSocialData && (
         <div>
-          <SectionHeader icon={Award} title="Social Proof" />
+          <SectionHeader icon={Award} title="Social Proof" tooltip={methodologyText.capTableQuality} />
           <div className="space-y-3">
             {startup.socialProof?.cap_table_quality && (
               <Badge 
@@ -393,30 +415,27 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* Risk Flags */}
       {hasRiskData && (
         <div>
-          <SectionHeader icon={AlertTriangle} title="Risk Signals" />
+          <SectionHeader icon={AlertTriangle} title="Risk Signals" tooltip="Identified risk factors that may require due diligence consideration." />
           <div className="space-y-2">
             {startup.riskFlags?.key_person_dependency && (
-              <div className="flex items-center gap-2 text-xs text-yellow-500">
+              <div className="flex items-center gap-2 text-xs text-yellow-500 group">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Key Person Dependency</span>
+                <MethodologyTooltip text={methodologyText.keyPersonDependency} className="opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             )}
             {startup.riskFlags?.single_customer_dependency && (
-              <div className="flex items-center gap-2 text-xs text-yellow-500">
+              <div className="flex items-center gap-2 text-xs text-yellow-500 group">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Single Customer Dependency</span>
+                <MethodologyTooltip text={methodologyText.singleCustomerDependency} className="opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             )}
             {startup.riskFlags?.lawsuits?.length ? (
-              <div className="flex items-center gap-2 text-xs text-red-500">
+              <div className="flex items-center gap-2 text-xs text-red-500 group">
                 <AlertTriangle className="h-3 w-3" />
-                <span>{startup.riskFlags.lawsuits.length} Active Lawsuit(s)</span>
-              </div>
-            ) : null}
-            {startup.riskFlags?.leadership_changes?.length ? (
-              <div className="flex items-center gap-2 text-xs text-yellow-500">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Recent Leadership Changes</span>
+                <span>Active Lawsuits ({startup.riskFlags.lawsuits.length})</span>
+                <MethodologyTooltip text={methodologyText.lawsuits} className="opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             ) : null}
           </div>

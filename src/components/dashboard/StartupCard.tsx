@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Users, DollarSign, Coins, Building2, GraduationCap, Briefcase, Globe, Shield, Award, AlertTriangle, Trophy, Info, Sparkles } from 'lucide-react';
+import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Users, DollarSign, Coins, Building2, GraduationCap, Briefcase, Globe, Shield, Award, AlertTriangle, Trophy, Info, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceBadge } from './ConfidenceBadge';
@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { methodologyText, MethodologyTooltip, DataLabel } from './DataMethodologyTooltips';
 
 interface StartupCardProps {
   startup: Startup;
@@ -54,38 +55,17 @@ const formatDate = (dateString: string) => {
 const SectionTitle = ({ children, tooltip }: { children: React.ReactNode; tooltip?: string }) => (
   <div className="flex items-center gap-2 mb-3">
     <h3 className="text-base font-semibold text-foreground">{children}</h3>
-    {tooltip && (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-[250px] text-xs">
-            {tooltip}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    )}
+    {tooltip && <MethodologyTooltip text={tooltip} />}
   </div>
 );
 
-const EstimatedLabel = ({ tooltip }: { tooltip: string }) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 cursor-help">
-          <Sparkles className="h-2.5 w-2.5" />
-          Est.
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[200px] text-xs">
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-);
+interface ScoreBadgeProps {
+  score?: number;
+  label: string;
+  tooltip?: string;
+}
 
-const ScoreBadge = ({ score, label }: { score?: number; label: string }) => {
+const ScoreBadge = ({ score, label, tooltip }: ScoreBadgeProps) => {
   if (score === undefined) return null;
   
   const getScoreColor = (s: number) => {
@@ -96,8 +76,11 @@ const ScoreBadge = ({ score, label }: { score?: number; label: string }) => {
   };
 
   return (
-    <div className="flex flex-col items-center p-3 rounded-lg bg-secondary/30 border border-border">
-      <span className="text-xs text-muted-foreground mb-1">{label}</span>
+    <div className="flex flex-col items-center p-3 rounded-lg bg-secondary/30 border border-border relative">
+      <div className="flex items-center gap-1 mb-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {tooltip && <MethodologyTooltip text={tooltip} />}
+      </div>
       <span className={cn('text-xl font-bold rounded-full px-3 py-1 border', getScoreColor(score))}>
         {score}
       </span>
@@ -316,10 +299,10 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                 <div>
                   <SectionTitle tooltip="AI-generated scores based on analysis of public data. These are predictive estimates, not guarantees.">AI Scores</SectionTitle>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <ScoreBadge score={startup.unicornProbability} label="Unicorn Prob." />
-                    <ScoreBadge score={startup.teamQualityScore} label="Team Quality" />
-                    <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" />
-                    <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" />
+                    <ScoreBadge score={startup.unicornProbability} label="Unicorn Prob." tooltip={methodologyText.unicornProbability} />
+                    <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality} />
+                    <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore} />
+                    <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness} />
                   </div>
                 </div>
               )}
@@ -339,25 +322,16 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                 <SectionTitle tooltip="Metrics derived from public sources and AI analysis. Actual figures may vary.">Key Metrics</SectionTitle>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">Revenue</p>
-                      <EstimatedLabel tooltip="Estimated from public data, job postings, and industry benchmarks" />
-                    </div>
-                    <p className="font-medium">{startup.metrics.estimatedRevenue || 'N/A'}</p>
+                    <DataLabel label="Revenue" isEstimated tooltip={methodologyText.estimatedRevenue} />
+                    <p className="font-medium text-foreground/80">{startup.metrics.estimatedRevenue || 'N/A'}</p>
                   </div>
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">Team Size</p>
-                      <EstimatedLabel tooltip="Estimated from LinkedIn data and public sources" />
-                    </div>
-                    <p className="font-medium">{startup.metrics.estimatedSize || 'N/A'}</p>
+                    <DataLabel label="Team Size" isEstimated tooltip={methodologyText.estimatedSize} />
+                    <p className="font-medium text-foreground/80">{startup.metrics.estimatedSize || 'N/A'}</p>
                   </div>
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">Buzz Score</p>
-                      <EstimatedLabel tooltip="AI-calculated score based on media coverage, social signals, and hiring activity" />
-                    </div>
-                    <p className="font-medium">{startup.metrics.buzzScore}/100</p>
+                    <DataLabel label="Buzz Score" isEstimated tooltip={methodologyText.buzzScore} />
+                    <p className="font-medium text-foreground/80">{startup.metrics.buzzScore}/100</p>
                   </div>
                 </div>
               </div>
@@ -567,56 +541,38 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {startup.tractionMetrics?.arr && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">ARR</p>
-                          <EstimatedLabel tooltip="Estimated from public disclosures and funding data" />
-                        </div>
-                        <p className="font-semibold">{formatCurrency(startup.tractionMetrics.arr)}</p>
+                        <DataLabel label="ARR" isEstimated tooltip={methodologyText.arr} />
+                        <p className="font-semibold text-foreground/80">{formatCurrency(startup.tractionMetrics.arr)}</p>
                       </div>
                     )}
                     {startup.tractionMetrics?.paying_customers && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">Paying Customers</p>
-                          <EstimatedLabel tooltip="Estimated from case studies and public mentions" />
-                        </div>
-                        <p className="font-semibold">{startup.tractionMetrics.paying_customers}</p>
+                        <DataLabel label="Paying Customers" isEstimated tooltip={methodologyText.payingCustomers} />
+                        <p className="font-semibold text-foreground/80">{startup.tractionMetrics.paying_customers}</p>
                       </div>
                     )}
                     {startup.tractionMetrics?.net_revenue_retention_pct && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">NRR</p>
-                          <EstimatedLabel tooltip="Estimated from industry benchmarks" />
-                        </div>
-                        <p className="font-semibold">{startup.tractionMetrics.net_revenue_retention_pct}%</p>
+                        <DataLabel label="NRR" isEstimated tooltip={methodologyText.nrr} />
+                        <p className="font-semibold text-foreground/80">{startup.tractionMetrics.net_revenue_retention_pct}%</p>
                       </div>
                     )}
                     {startup.unitEconomics?.ltv_cac_ratio && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">LTV:CAC</p>
-                          <EstimatedLabel tooltip="Derived from industry averages and available data" />
-                        </div>
-                        <p className="font-semibold">{startup.unitEconomics.ltv_cac_ratio}x</p>
+                        <DataLabel label="LTV:CAC" isEstimated tooltip={methodologyText.ltvCac} />
+                        <p className="font-semibold text-foreground/80">{startup.unitEconomics.ltv_cac_ratio}x</p>
                       </div>
                     )}
                     {startup.unitEconomics?.gross_margin_pct && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">Gross Margin</p>
-                          <EstimatedLabel tooltip="Estimated based on business model" />
-                        </div>
-                        <p className="font-semibold">{startup.unitEconomics.gross_margin_pct}%</p>
+                        <DataLabel label="Gross Margin" isEstimated tooltip={methodologyText.grossMargin} />
+                        <p className="font-semibold text-foreground/80">{startup.unitEconomics.gross_margin_pct}%</p>
                       </div>
                     )}
                     {startup.unitEconomics?.runway_months && (
                       <div className="rounded-lg bg-secondary/30 p-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">Runway</p>
-                          <EstimatedLabel tooltip="Estimated from funding and burn rate analysis" />
-                        </div>
-                        <p className="font-semibold">{startup.unitEconomics.runway_months} mo</p>
+                        <DataLabel label="Runway" isEstimated tooltip={methodologyText.runway} />
+                        <p className="font-semibold text-foreground/80">{startup.unitEconomics.runway_months} mo</p>
                       </div>
                     )}
                   </div>
