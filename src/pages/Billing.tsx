@@ -205,15 +205,12 @@ const Billing = () => {
                     )}
                   </div>
                 </div>
-                {subscription.cancelAtPeriodEnd && (
+                {subscription.cancelAtPeriodEnd && subscription.subscriptionEnd && new Date(subscription.subscriptionEnd) > new Date() && (
                   <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                     <p className="text-sm text-amber-600 dark:text-amber-400">
                       <AlertCircle className="h-4 w-4 inline mr-2" />
                       Your subscription has been cancelled. You'll continue to have full access until{' '}
-                      {subscription.subscriptionEnd 
-                        ? <strong>{new Date(subscription.subscriptionEnd).toLocaleDateString()}</strong>
-                        : 'the end of your billing period'
-                      }.
+                      <strong>{new Date(subscription.subscriptionEnd).toLocaleDateString()}</strong>.
                     </p>
                   </div>
                 )}
