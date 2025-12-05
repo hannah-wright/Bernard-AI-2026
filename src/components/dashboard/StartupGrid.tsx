@@ -210,8 +210,8 @@ export const StartupGrid = ({
             })}
           </div>
           
-          {/* Load More Button - only for authenticated users */}
-          {user && hasNextPage && onLoadMore && (
+          {/* Load More Button - only for authenticated users when filters aren't reducing results */}
+          {user && hasNextPage && onLoadMore && filteredStartups.length === startups.length && (
             <div className="flex justify-center mt-8">
               <Button 
                 variant="outline" 
