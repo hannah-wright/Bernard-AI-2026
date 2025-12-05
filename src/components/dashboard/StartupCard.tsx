@@ -299,10 +299,10 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                 <div>
                   <SectionTitle tooltip="AI-generated scores based on analysis of public data. These are predictive estimates, not guarantees.">AI Scores</SectionTitle>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <ScoreBadge score={startup.unicornProbability} label="Unicorn Prob." tooltip={methodologyText.unicornProbability} />
-                    <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality} />
-                    <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore} />
-                    <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness} />
+                    <ScoreBadge score={startup.unicornProbability} label="Unicorn Prob." tooltip={methodologyText.unicornProbability.detail} />
+                    <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality.detail} />
+                    <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore.detail} />
+                    <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness.detail} />
                   </div>
                 </div>
               )}
