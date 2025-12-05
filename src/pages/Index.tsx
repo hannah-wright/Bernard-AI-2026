@@ -3,12 +3,19 @@ import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/dashboard/FilterSidebar';
 import { StartupGrid } from '@/components/dashboard/StartupGrid';
 import { useStartups } from '@/hooks/useStartups';
-import { FilterState } from '@/types/startup';
+import { FilterState, SortOption } from '@/types/startup';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCredits } from '@/hooks/useCredits';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { CsvExportCta } from '@/components/billing/CsvExportCta';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const Index = () => {
   const { 
@@ -103,6 +110,7 @@ const Index = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('recently_added');
 
   // Auto-load all pages when user is searching or filtering by Bootstrapped
   // This ensures search and Bootstrapped filter work across all data, not just loaded pages
@@ -137,7 +145,21 @@ const Index = () => {
                 </button>
               )}
             </div>
-            <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by:</span>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recently_added">Recently Added</SelectItem>
+                    <SelectItem value="last_funded">Last Funded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
+            </div>
           </div>
           
           <div className="flex flex-col lg:flex-row gap-6">
@@ -151,6 +173,7 @@ const Index = () => {
                 startups={startups} 
                 filters={filters}
                 searchQuery={searchQuery}
+                sortBy={sortBy}
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 onLoadMore={() => fetchNextPage()}

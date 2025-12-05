@@ -293,9 +293,9 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
 
   const filterContent = (
     <div className="space-y-4">
-      {/* Date Range */}
+      {/* Last Round Date */}
       <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Date Range</Label>
+        <Label className="text-sm text-muted-foreground">Last Round Date</Label>
         <Select
           value={filters.dateRange}
           onValueChange={(value) => onFiltersChange({ ...filters, dateRange: value })}
