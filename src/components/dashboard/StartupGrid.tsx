@@ -206,7 +206,7 @@ export const StartupGrid = ({
     <div className="flex-1">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold">Recent Funding Rounds</h2>
+          <h2 className="text-lg font-semibold">Startups to Explore:</h2>
         </div>
       </div>
 
