@@ -8,6 +8,7 @@ import { locationData, countryNameToCode, getMetrosForCountries, cityBelongsToMe
 interface StartupGridProps {
   startups: Startup[];
   filters: FilterState;
+  searchQuery?: string;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
@@ -16,14 +17,31 @@ interface StartupGridProps {
 export const StartupGrid = ({ 
   startups, 
   filters, 
+  searchQuery = '',
   hasNextPage,
   isFetchingNextPage,
   onLoadMore 
 }: StartupGridProps) => {
   const { user } = useAuth();
   
-  // Filter startups based on current filters
+  // Filter startups based on search query and current filters
   const filteredStartups = startups.filter((startup) => {
+    // Search filter - match name, sectors, location, or description
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = startup.name.toLowerCase().includes(query);
+      const matchesSector = startup.sector.some(s => s.toLowerCase().includes(query));
+      const matchesLocation = 
+        startup.location.city.toLowerCase().includes(query) ||
+        startup.location.country.toLowerCase().includes(query) ||
+        (startup.location.state?.toLowerCase().includes(query) ?? false);
+      const matchesDescription = startup.eli5?.toLowerCase().includes(query);
+      
+      if (!matchesName && !matchesSector && !matchesLocation && !matchesDescription) {
+        return false;
+      }
+    }
+
     // Date range filter - use date-only comparison to avoid timezone issues
     const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
     const [year, month, day] = fundingDateStr.split('-').map(Number);
