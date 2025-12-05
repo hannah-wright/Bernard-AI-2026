@@ -8,6 +8,7 @@ import { locationData, countryNameToCode, getMetrosForCountries, cityBelongsToMe
 interface StartupGridProps {
   startups: Startup[];
   filters: FilterState;
+  searchQuery?: string;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
@@ -16,16 +17,36 @@ interface StartupGridProps {
 export const StartupGrid = ({ 
   startups, 
   filters, 
+  searchQuery = '',
   hasNextPage,
   isFetchingNextPage,
   onLoadMore 
 }: StartupGridProps) => {
   const { user } = useAuth();
   
-  // Filter startups based on current filters
+  // Filter startups based on search query and current filters
   const filteredStartups = startups.filter((startup) => {
-    // Date range filter
-    const fundingDate = new Date(startup.fundingRound.date);
+    // Search filter - match name, sectors, location, or description
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = startup.name.toLowerCase().includes(query);
+      const matchesSector = startup.sector.some(s => s.toLowerCase().includes(query));
+      const matchesLocation = 
+        startup.location.city.toLowerCase().includes(query) ||
+        startup.location.country.toLowerCase().includes(query) ||
+        (startup.location.state?.toLowerCase().includes(query) ?? false);
+      const matchesDescription = startup.eli5?.toLowerCase().includes(query);
+      
+      if (!matchesName && !matchesSector && !matchesLocation && !matchesDescription) {
+        return false;
+      }
+    }
+
+    // Date range filter - use date-only comparison to avoid timezone issues
+    const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
+    const [year, month, day] = fundingDateStr.split('-').map(Number);
+    const fundingDate = new Date(year, month - 1, day); // Local timezone
+    
     let cutoffDate: Date;
     
     if (filters.dateRange === 'ytd') {
@@ -36,6 +57,8 @@ export const StartupGrid = ({
       cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
     }
+    // Set to start of day for fair comparison
+    cutoffDate.setHours(0, 0, 0, 0);
     
     if (fundingDate < cutoffDate) return false;
 
@@ -170,9 +193,6 @@ export const StartupGrid = ({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold">Recent Funding Rounds</h2>
-          <p className="text-sm text-muted-foreground">
-            {filteredStartups.length} startup{filteredStartups.length !== 1 ? 's' : ''} match your criteria
-          </p>
         </div>
       </div>
 
@@ -208,8 +228,8 @@ export const StartupGrid = ({
             })}
           </div>
           
-          {/* Load More Button - only for authenticated users */}
-          {user && hasNextPage && onLoadMore && (
+          {/* Load More Button - only for authenticated users when filters aren't reducing results */}
+          {user && hasNextPage && onLoadMore && filteredStartups.length === startups.length && (
             <div className="flex justify-center mt-8">
               <Button 
                 variant="outline" 

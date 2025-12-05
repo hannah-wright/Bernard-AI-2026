@@ -529,6 +529,7 @@ export type Database = {
         | "Series B"
         | "Series C"
         | "Series D+"
+        | "Bootstrapped"
       sector_type:
         | "AI/ML"
         | "Fintech"
@@ -675,6 +676,7 @@ export const Constants = {
         "Series B",
         "Series C",
         "Series D+",
+        "Bootstrapped",
       ],
       sector_type: [
         "AI/ML",

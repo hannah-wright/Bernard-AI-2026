@@ -1,4 +1,4 @@
-export type RoundType = 'Pre-Seed' | 'Seed' | 'Series A' | 'Series B' | 'Series C' | 'Series D+';
+export type RoundType = 'Pre-Seed' | 'Seed' | 'Series A' | 'Series B' | 'Series C' | 'Series D+' | 'Bootstrapped';
 
 export type Sector = 
   | 'AI/ML' 

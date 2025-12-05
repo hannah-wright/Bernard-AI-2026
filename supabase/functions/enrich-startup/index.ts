@@ -34,7 +34,6 @@ interface VCIntelligence {
   unicorn_probability: number
   product_market_fit_score: number
   investment_readiness_score: number
-  // New fields
   region: string
   primary_market: string
   business_model: string
@@ -56,7 +55,7 @@ interface VCIntelligence {
   has_lead: boolean
 }
 
-async function enrichWithAI(startup: StartupData, apiKey: string): Promise<VCIntelligence> {
+async function enrichWithAI(startup: StartupData, apiKey: string, retryCount = 0): Promise<VCIntelligence> {
   const prompt = `You are a VC analyst. Analyze this startup and provide structured intelligence data.
 
 STARTUP INFO:
@@ -168,7 +167,7 @@ IMPORTANT FIELD VALUES:
 - target_customer: One of "SMB", "Mid-market", "Enterprise", "Consumer", "All"
 - founder_type: One of "Solo", "Team"
 - accelerator: One of "YC", "Techstars", "a16z", "500 Startups", "Other Tier-1", null
-- investor_quality: One of "Unicorn-backers" (investors who have backed unicorns), "Multi-exit fund" (funds with multiple portfolio exits), "Established fund" (known funds with track record), "Angel/Seed-focus" (angel investors and seed specialists)
+- investor_quality: One of "Unicorn-backers", "Multi-exit fund", "Established fund", "Angel/Seed-focus"
 - runway_band: One of "<6 months", "6-12 months", "12-18 months", "18+ months"
 - burn_multiple_band: One of "<1x", "1-2x", "2-3x", ">3x"
 - round_status: One of "Raising", "Recently Closed", "Exploring"
@@ -194,9 +193,15 @@ ONLY return valid JSON, no other text.`
   if (!response.ok) {
     const errorText = await response.text()
     console.error('AI API error:', response.status, errorText)
-    if (response.status === 429) {
-      throw new Error('Rate limited - please try again later')
+    
+    // Retry on rate limit with exponential backoff
+    if (response.status === 429 && retryCount < 3) {
+      const delay = Math.pow(2, retryCount) * 2000 // 2s, 4s, 8s
+      console.log(`Rate limited, retrying in ${delay}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      return enrichWithAI(startup, apiKey, retryCount + 1)
     }
+    
     if (response.status === 402) {
       throw new Error('AI credits exhausted')
     }
@@ -250,22 +255,31 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { startupId, enrichAll, forceReenrich } = await req.json()
+    const { startupId, startupIds, enrichAll, forceReenrich, batchSize = 50 } = await req.json()
 
     let startupsToEnrich: StartupData[] = []
 
-    if (enrichAll) {
+    if (startupIds && Array.isArray(startupIds) && startupIds.length > 0) {
+      // Enrich specific startups by IDs
+      const { data: startups, error } = await supabase
+        .from('startups')
+        .select('id, name, description, eli5, website, sectors, city, country, estimated_revenue, estimated_size, buzz_score')
+        .in('id', startupIds)
+
+      if (error) throw error
+      startupsToEnrich = startups || []
+    } else if (enrichAll) {
       // Enrich startups - either all or only those without data
       let query = supabase
         .from('startups')
         .select('id, name, description, eli5, website, sectors, city, country, estimated_revenue, estimated_size, buzz_score')
       
-      // If not forcing re-enrich, only get startups without region (new field)
+      // If not forcing re-enrich, only get startups without enrichment data
       if (!forceReenrich) {
-        query = query.is('region', null)
+        query = query.or('unicorn_probability.is.null,team_quality_score.is.null')
       }
       
-      const { data: startups, error } = await query.limit(25) // Process 25 at a time for faster bulk enrichment
+      const { data: startups, error } = await query.limit(Math.min(batchSize, 100)) // Max 100 per batch
 
       if (error) throw error
       startupsToEnrich = startups || []
@@ -292,6 +306,7 @@ Deno.serve(async (req) => {
 
     let enriched = 0
     let errors = 0
+    const failedStartups: string[] = []
 
     for (const startup of startupsToEnrich) {
       try {
@@ -315,7 +330,6 @@ Deno.serve(async (req) => {
             unicorn_probability: intelligence.unicorn_probability,
             product_market_fit_score: intelligence.product_market_fit_score,
             investment_readiness_score: intelligence.investment_readiness_score,
-            // New fields
             region: intelligence.region,
             primary_market: intelligence.primary_market,
             business_model: intelligence.business_model,
@@ -335,22 +349,25 @@ Deno.serve(async (req) => {
             burn_multiple_band: intelligence.burn_multiple_band,
             round_status: intelligence.round_status,
             has_lead: intelligence.has_lead,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', startup.id)
 
         if (updateError) {
           console.error(`Failed to update ${startup.name}:`, updateError)
           errors++
+          failedStartups.push(startup.name)
         } else {
           console.log(`Successfully enriched ${startup.name}`)
           enriched++
         }
 
-        // Add delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Shorter delay to process faster
+        await new Promise(resolve => setTimeout(resolve, 500))
       } catch (err) {
         console.error(`Error enriching ${startup.name}:`, err)
         errors++
+        failedStartups.push(startup.name)
       }
     }
 
@@ -361,7 +378,8 @@ Deno.serve(async (req) => {
         stats: {
           total: startupsToEnrich.length,
           enriched,
-          errors
+          errors,
+          failedStartups: failedStartups.length > 0 ? failedStartups : undefined
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

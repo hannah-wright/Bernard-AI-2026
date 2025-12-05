@@ -4,10 +4,11 @@ import { FilterSidebar } from '@/components/dashboard/FilterSidebar';
 import { StartupGrid } from '@/components/dashboard/StartupGrid';
 import { useStartups } from '@/hooks/useStartups';
 import { FilterState } from '@/types/startup';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { useCredits } from '@/hooks/useCredits';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { CsvExportCta } from '@/components/billing/CsvExportCta';
+import { Input } from '@/components/ui/input';
 
 const Index = () => {
   const { 
@@ -101,15 +102,32 @@ const Index = () => {
     hasLead: undefined,
   });
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main>
         <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search startups by name, sector, location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
+            <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
           </div>
           
           <div className="flex flex-col lg:flex-row gap-6">
@@ -122,6 +140,7 @@ const Index = () => {
               <StartupGrid 
                 startups={startups} 
                 filters={filters}
+                searchQuery={searchQuery}
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 onLoadMore={() => fetchNextPage()}
