@@ -140,7 +140,7 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
       <div 
         onClick={handleCardClick}
         className={cn(
-          "group relative rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-foreground/20 hover:shadow-sm cursor-pointer",
+          "group relative rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:shadow-sm cursor-pointer",
           isLoading && "opacity-50 pointer-events-none"
         )}
       >
@@ -243,15 +243,15 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
             </div>
           </DialogHeader>
 
-          <Tabs defaultValue="overview" className="mt-4">
+          <Tabs defaultValue="market" className="mt-4">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="team">Team</TabsTrigger>
               <TabsTrigger value="market">Market</TabsTrigger>
+              <TabsTrigger value="team">Team</TabsTrigger>
+              <TabsTrigger value="predictive">Predictive AI</TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6 mt-4">
+            {/* Predictive AI Tab */}
+            <TabsContent value="predictive" className="space-y-6 mt-4">
               {/* Funding Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg bg-secondary/50 p-4">
@@ -273,12 +273,6 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* What they do */}
-              <div>
-                <SectionTitle>What They Do</SectionTitle>
-                <p className="text-foreground">{startup.eli5}</p>
               </div>
 
               {/* AI Scores */}
@@ -503,6 +497,12 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
 
             {/* Market Tab */}
             <TabsContent value="market" className="space-y-6 mt-4">
+              {/* What they do */}
+              <div>
+                <SectionTitle>What They Do</SectionTitle>
+                <p className="text-foreground">{startup.eli5}</p>
+              </div>
+
               {/* Industry */}
               <div>
                 <SectionTitle>Industry</SectionTitle>
