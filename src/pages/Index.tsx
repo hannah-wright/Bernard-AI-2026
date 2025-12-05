@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/dashboard/FilterSidebar';
 import { StartupGrid } from '@/components/dashboard/StartupGrid';
@@ -103,6 +103,16 @@ const Index = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Auto-load all pages when user is searching or filtering by Bootstrapped
+  // This ensures search and Bootstrapped filter work across all data, not just loaded pages
+  const needsFullData = searchQuery.trim().length > 0 || filters.roundTypes.includes('Bootstrapped');
+  
+  useEffect(() => {
+    if (needsFullData && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [needsFullData, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="min-h-screen bg-background">
