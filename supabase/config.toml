@@ -11,3 +11,8 @@ verify_jwt = false
 
 [functions.enrich-startup]
 verify_jwt = false
+
+# Run scraping twice daily at 6am and 6pm UTC
+[[crons]]
+function = "scrape-startups"
+schedule = "0 6,18 * * *"

@@ -25,10 +25,18 @@ export const StartupGrid = ({
   // Filter startups based on current filters
   const filteredStartups = startups.filter((startup) => {
     // Date range filter
-    const daysAgo = parseInt(filters.dateRange);
     const fundingDate = new Date(startup.fundingRound.date);
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+    let cutoffDate: Date;
+    
+    if (filters.dateRange === 'ytd') {
+      // Year to date: from January 1st of current year
+      cutoffDate = new Date(new Date().getFullYear(), 0, 1);
+    } else {
+      const daysAgo = parseInt(filters.dateRange);
+      cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+    }
+    
     if (fundingDate < cutoffDate) return false;
 
     // Current round size filter (fundingMin/Max)

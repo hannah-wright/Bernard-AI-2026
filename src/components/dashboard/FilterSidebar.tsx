@@ -61,7 +61,7 @@ const dateRanges = [
   { value: '30', label: 'Last 30 days' },
   { value: '90', label: 'Last 3 months' },
   { value: '180', label: 'Last 6 months' },
-  { value: '365', label: 'Last year' },
+  { value: 'ytd', label: 'Year to date' },
   { value: '9999', label: 'All time' },
 ];
 

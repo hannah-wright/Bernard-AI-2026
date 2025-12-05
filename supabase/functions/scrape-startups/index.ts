@@ -246,7 +246,59 @@ async function saveStartupsToDatabase(supabase: any, startups: ScrapedStartup[])
         .single()
       
       if (existing) {
-        console.log(`Startup ${startup.name} already exists, skipping`)
+        // Check if this is a new funding round for existing startup
+        const { data: existingRounds } = await supabase
+          .from('funding_rounds')
+          .select('amount, round_type, date')
+          .eq('startup_id', existing.id)
+          .order('date', { ascending: false })
+          .limit(1)
+        
+        const latestRound = existingRounds?.[0]
+        const isNewRound = !latestRound || 
+          latestRound.amount !== startup.funding_amount ||
+          latestRound.round_type !== startup.round_type
+        
+        if (isNewRound && startup.funding_amount > 0) {
+          console.log(`New funding round detected for ${startup.name}, adding...`)
+          
+          // Add new funding round
+          const { error: fundingError } = await supabase
+            .from('funding_rounds')
+            .insert({
+              startup_id: existing.id,
+              amount: startup.funding_amount,
+              round_type: startup.round_type,
+              date: startup.funding_date,
+              lead_investors: startup.lead_investors
+            })
+          
+          if (!fundingError) {
+            // Update buzz score and timestamp
+            await supabase
+              .from('startups')
+              .update({ 
+                buzz_score: Math.max(startup.buzz_score, 50),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existing.id)
+            
+            // Add data source for new round
+            await supabase
+              .from('data_sources')
+              .insert({
+                startup_id: existing.id,
+                name: startup.source_name,
+                url: startup.source_url,
+                confidence: startup.confidence
+              })
+            
+            saved++
+            console.log(`Added new funding round for: ${startup.name}`)
+          }
+        } else {
+          console.log(`Startup ${startup.name} already exists with same round, skipping`)
+        }
         continue
       }
       
