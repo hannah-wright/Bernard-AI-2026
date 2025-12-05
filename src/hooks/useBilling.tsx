@@ -186,15 +186,20 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
         },
       });
 
+      console.log('Cancel response:', { data, error });
+
+      // Check for invocation error
       if (error) throw error;
+      
+      // Check for error in response body
       if (data?.error) throw new Error(data.error);
       
+      // Success
       toast.success('Subscription will be cancelled at the end of the billing period');
       await refreshSubscription();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error cancelling subscription:', error);
       toast.error('Failed to cancel subscription');
-      // Still refresh in case it actually succeeded
       await refreshSubscription();
     }
   };

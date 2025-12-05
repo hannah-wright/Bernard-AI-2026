@@ -235,15 +235,15 @@ const Billing = () => {
                 return (
                   <Card
                     key={key}
-                    className={`relative ${isCurrentPlan ? 'border-primary ring-1 ring-primary' : ''} ${
-                      key === 'growth' ? 'md:scale-105' : ''
+                    className={`relative ${isCurrentPlan ? 'border-primary ring-1 ring-primary mt-4' : ''} ${
+                      key === 'growth' ? 'md:scale-105 mt-4' : ''
                     }`}
                   >
                     {key === 'growth' && (
-                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Most Popular</Badge>
+                      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">Most Popular</Badge>
                     )}
                     {isCurrentPlan && (
-                      <Badge variant="outline" className="absolute -top-3 right-4">
+                      <Badge variant="outline" className="absolute -top-3 right-4 bg-background">
                         Current Plan
                       </Badge>
                     )}
