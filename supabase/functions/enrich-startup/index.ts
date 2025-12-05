@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
         query = query.is('region', null)
       }
       
-      const { data: startups, error } = await query.limit(10) // Process 10 at a time
+      const { data: startups, error } = await query.limit(25) // Process 25 at a time for faster bulk enrichment
 
       if (error) throw error
       startupsToEnrich = startups || []
