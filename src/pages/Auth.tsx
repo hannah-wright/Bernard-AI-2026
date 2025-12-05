@@ -169,6 +169,29 @@ const Auth = () => {
     };
   };
 
+  const validateInviteCode = async (code: string): Promise<{ valid: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.rpc('check_invite_code', { code_to_check: code.toUpperCase() });
+      
+      if (error) {
+        return { valid: false, error: 'Unable to validate invite code. Please try again.' };
+      }
+      
+      if (!data || data.length === 0) {
+        return { valid: false, error: 'Invalid invite code. Please check and try again.' };
+      }
+      
+      const inviteData = data[0];
+      if (!inviteData.is_valid) {
+        return { valid: false, error: 'This invite code has expired or reached its maximum uses.' };
+      }
+      
+      return { valid: true };
+    } catch (err) {
+      return { valid: false, error: 'Unable to validate invite code. Please try again.' };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -189,6 +212,16 @@ const Auth = () => {
           });
         }
       } else {
+        // Validate invite code before signup
+        const inviteValidation = await validateInviteCode(inviteCode);
+        if (!inviteValidation.valid) {
+          const { title, description } = getInviteErrorMessage(inviteValidation.error || 'Invalid invite code');
+          toast({ title, description, variant: 'destructive' });
+          setErrors((prev) => ({ ...prev, inviteCode: inviteValidation.error }));
+          setIsSubmitting(false);
+          return;
+        }
+
         const { error } = await signUp(email, password, fullName, inviteCode);
         if (error) {
           const { title, description } = getSignupErrorMessage(error);
