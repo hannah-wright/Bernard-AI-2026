@@ -56,11 +56,14 @@ export const Header = () => {
 
           <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full">
+              <button 
+                onClick={() => navigate('/billing')}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full hover:bg-muted/80 transition-colors cursor-pointer"
+              >
                 <Coins className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{credits.toLocaleString()}</span>
                 <span className="text-xs text-muted-foreground">credits</span>
-              </div>
+              </button>
             )}
             
             <Button variant="ghost" size="icon" className="hidden md:flex">
