@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { locationData, countryNameToCode, getMetrosForCountries, cityBelongsToMetro } from '@/data/locationData';
+import { Link } from 'react-router-dom';
 
 interface StartupGridProps {
   startups: Startup[];
@@ -19,7 +20,7 @@ export const StartupGrid = ({
   startups, 
   filters, 
   searchQuery = '',
-  sortBy = 'recently_added',
+  sortBy = 'date_added',
   hasNextPage,
   isFetchingNextPage,
   onLoadMore 
@@ -188,7 +189,7 @@ export const StartupGrid = ({
 
     return true;
   }).sort((a, b) => {
-    if (sortBy === 'recently_added') {
+    if (sortBy === 'date_added') {
       // Sort by when the startup was added to the database (created_at)
       const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -199,8 +200,11 @@ export const StartupGrid = ({
     }
   });
 
-  // Authenticated users (trial or paid) see all data; unauthenticated see first 4 only
+  // Authenticated users see all data; unauthenticated see first 4 only
   const blurStartIndex = user ? Infinity : 4;
+  
+  // For logged out users, show placeholder blurred cards to fill the grid
+  const placeholderCount = !user ? Math.max(0, 6 - filteredStartups.length) : 0;
 
   return (
     <div className="flex-1">
@@ -210,7 +214,7 @@ export const StartupGrid = ({
         </div>
       </div>
 
-      {filteredStartups.length > 0 ? (
+      {filteredStartups.length > 0 || !user ? (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredStartups.map((startup, index) => {
@@ -233,13 +237,63 @@ export const StartupGrid = ({
                           <Lock className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <p className="font-medium text-foreground">Get full access</p>
-                        <Button size="sm">Request Access</Button>
+                        <Button size="sm" asChild>
+                          <Link to="/auth">Request Access</Link>
+                        </Button>
                       </div>
                     </div>
                   )}
                 </div>
               );
             })}
+            
+            {/* Placeholder blurred cards for logged out users */}
+            {!user && Array.from({ length: placeholderCount }).map((_, index) => (
+              <div
+                key={`placeholder-${index}`}
+                className="animate-fade-in relative"
+                style={{ animationDelay: `${Math.min(filteredStartups.length + index, 20) * 50}ms` }}
+              >
+                <div className="blur-sm pointer-events-none select-none">
+                  <div className="rounded-lg border border-border bg-card p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-secondary" />
+                        <div>
+                          <div className="h-4 w-24 bg-secondary rounded" />
+                          <div className="h-3 w-20 bg-secondary rounded mt-1" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-5 w-16 bg-secondary rounded" />
+                      <div className="h-5 w-12 bg-secondary rounded" />
+                    </div>
+                    <div className="h-8 w-full bg-secondary rounded mb-3" />
+                    <div className="flex gap-1.5 mb-3">
+                      <div className="h-5 w-12 bg-secondary rounded" />
+                      <div className="h-5 w-14 bg-secondary rounded" />
+                    </div>
+                    <div className="pt-3 border-t border-border flex justify-between">
+                      <div className="h-3 w-24 bg-secondary rounded" />
+                      <div className="h-3 w-8 bg-secondary rounded" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 rounded-lg">
+                  <div className="flex flex-col items-center gap-3 p-6 text-center">
+                    <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="font-medium text-foreground">Get full access</p>
+                    <Button size="sm" asChild>
+                      <Link to="/auth">Request Access</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           
           {/* Load More Button - only for authenticated users when filters aren't reducing results */}

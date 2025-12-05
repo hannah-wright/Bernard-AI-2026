@@ -160,7 +160,7 @@ export interface RiskFlags {
   geographic_concentration?: boolean;
 }
 
-export type SortOption = 'recently_added' | 'last_funded';
+export type SortOption = 'date_added' | 'last_funded';
 
 export interface Startup {
   id: string;

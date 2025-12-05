@@ -110,7 +110,7 @@ const Index = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('recently_added');
+  const [sortBy, setSortBy] = useState<SortOption>('date_added');
 
   // Auto-load all pages when user is searching or filtering by Bootstrapped
   // This ensures search and Bootstrapped filter work across all data, not just loaded pages
@@ -153,8 +153,8 @@ const Index = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recently_added">Recently Added</SelectItem>
-                    <SelectItem value="last_funded">Last Funded</SelectItem>
+                    <SelectItem value="date_added">Date Added</SelectItem>
+                    <SelectItem value="last_funded">Last Round Date</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

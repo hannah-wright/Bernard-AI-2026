@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Users, DollarSign, Coins, Building2, GraduationCap, Briefcase, Globe, Shield, Award, AlertTriangle, Trophy, Info, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Users, DollarSign, Coins, Building2, GraduationCap, Briefcase, Globe, Shield, Award, AlertTriangle, Trophy, Info, Sparkles, CheckCircle2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceBadge } from './ConfidenceBadge';
@@ -7,6 +7,7 @@ import { Startup } from '@/types/startup';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useCredits } from '@/hooks/useCredits';
+import { Link } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +92,7 @@ const ScoreBadge = ({ score, label, tooltip }: ScoreBadgeProps) => {
 export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => {
   const [isFavorite, setIsFavorite] = useState(startup.isFavorite || false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [hasViewedDetails, setHasViewedDetails] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -104,14 +106,9 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
   };
 
   const handleCardClick = async () => {
-    // If not logged in, prompt to sign in
+    // If not logged in, show Request Access dialog
     if (!user) {
-      toast.info('Sign in to view startup details', {
-        action: {
-          label: 'Sign In',
-          onClick: () => window.location.href = '/auth',
-        },
-      });
+      setShowAccessDialog(true);
       return;
     }
 
@@ -715,6 +712,24 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
             >
               <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
               {isFavorite ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Access Dialog for logged out users */}
+      <Dialog open={showAccessDialog} onOpenChange={setShowAccessDialog}>
+        <DialogContent className="max-w-sm">
+          <div className="flex flex-col items-center text-center py-4">
+            <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mb-4">
+              <Lock className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <DialogTitle className="text-xl mb-2">Get Full Access</DialogTitle>
+            <p className="text-muted-foreground mb-6">
+              Request access to view detailed startup information, AI insights, and more.
+            </p>
+            <Button asChild className="w-full">
+              <Link to="/auth">Request Access</Link>
             </Button>
           </div>
         </DialogContent>
