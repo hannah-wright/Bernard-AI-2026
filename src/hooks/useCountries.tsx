@@ -1,9 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { locationData, MetroArea } from '@/data/locationData';
 
 interface CountryOption {
   code: string;
   name: string;
+}
+
+export interface MetroOption {
+  id: string;
+  name: string;
+  countryCode: string;
 }
 
 // Map database country names to codes
@@ -57,6 +64,15 @@ const codeToName: Record<string, string> = {
   'AE': 'UAE',
 };
 
+// Helper to find metro for a city
+function findMetroForCity(city: string, countryCode: string): MetroArea | undefined {
+  const country = locationData.find(c => c.code === countryCode);
+  if (!country) return undefined;
+  return country.metros.find(m => 
+    m.cities.some(c => c.toLowerCase() === city.toLowerCase())
+  );
+}
+
 async function fetchUniqueCountries(): Promise<CountryOption[]> {
   const { data, error } = await supabase
     .from('startups')
@@ -88,10 +104,49 @@ async function fetchUniqueCountries(): Promise<CountryOption[]> {
   return countryOptions;
 }
 
+async function fetchUniqueMetros(): Promise<MetroOption[]> {
+  const { data, error } = await supabase
+    .from('startups')
+    .select('city, country')
+    .not('city', 'is', null)
+    .not('country', 'is', null);
+
+  if (error) {
+    console.error('Error fetching cities:', error);
+    return [];
+  }
+
+  // Map cities to metros
+  const metroMap = new Map<string, MetroOption>();
+  
+  data.forEach(startup => {
+    const countryCode = countryNameToCode[startup.country] || startup.country;
+    const metro = findMetroForCity(startup.city, countryCode);
+    
+    if (metro && !metroMap.has(metro.id)) {
+      metroMap.set(metro.id, {
+        id: metro.id,
+        name: metro.name,
+        countryCode,
+      });
+    }
+  });
+
+  return Array.from(metroMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function useCountries() {
   return useQuery({
     queryKey: ['unique-countries'],
     queryFn: fetchUniqueCountries,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+}
+
+export function useMetros() {
+  return useQuery({
+    queryKey: ['unique-metros'],
+    queryFn: fetchUniqueMetros,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 }
