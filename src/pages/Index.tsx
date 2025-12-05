@@ -1,20 +1,15 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
-import { Hero } from '@/components/dashboard/Hero';
-import { StatsBar } from '@/components/dashboard/StatsBar';
 import { FilterSidebar } from '@/components/dashboard/FilterSidebar';
 import { StartupGrid } from '@/components/dashboard/StartupGrid';
 import { useStartups } from '@/hooks/useStartups';
 import { FilterState } from '@/types/startup';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { useCredits } from '@/hooks/useCredits';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { CsvExportCta } from '@/components/billing/CsvExportCta';
 
 const Index = () => {
-  const dashboardRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
   const { 
     startups = [], 
     isLoading,
@@ -105,18 +100,11 @@ const Index = () => {
     hasLead: undefined,
   });
 
-  const scrollToDashboard = () => {
-    dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main>
-        <Hero onStartScouting={scrollToDashboard} />
-        <StatsBar />
-        
-        <div ref={dashboardRef} className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <CsvExportCta onExport={handleCsvExport} startupCount={startups.length} />
