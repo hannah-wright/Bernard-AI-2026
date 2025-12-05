@@ -13,6 +13,17 @@ export type Sector =
 
 export type ConfidenceLevel = 'verified' | 'high' | 'medium' | 'low';
 
+export type Region = 'US' | 'EU' | 'LATAM' | 'APAC' | 'MEA' | 'Remote/Global';
+export type BusinessModel = 'B2B' | 'B2C' | 'B2B2C';
+export type CompanyType = 'SaaS' | 'Marketplace' | 'Fintech' | 'Hardware' | 'Services' | 'Other';
+export type TargetCustomer = 'SMB' | 'Mid-market' | 'Enterprise' | 'Consumer' | 'All';
+export type FounderType = 'Solo' | 'Team';
+export type Accelerator = 'YC' | 'Techstars' | 'a16z' | '500 Startups' | 'Other Tier-1' | 'None';
+export type InvestorQuality = 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Angels only';
+export type RunwayBand = '<6 months' | '6-12 months' | '12-18 months' | '18+ months';
+export type BurnMultipleBand = '<1x' | '1-2x' | '2-3x' | '>3x';
+export type RoundStatus = 'Raising' | 'Recently Closed' | 'Exploring';
+
 export interface DataSource {
   name: string;
   confidence: ConfidenceLevel;
@@ -174,6 +185,33 @@ export interface Startup {
   isFavorite?: boolean;
   notes?: string;
   
+  // Geography fields
+  region?: Region;
+  primaryMarket?: Region;
+  
+  // Business model fields
+  businessModel?: BusinessModel;
+  companyType?: CompanyType;
+  targetCustomer?: TargetCustomer;
+  
+  // Team & signal fields
+  founderType?: FounderType;
+  isSerialFounder?: boolean;
+  accelerator?: Accelerator;
+  hasFaangAlumni?: boolean;
+  hasPriorExit?: boolean;
+  priorExitCount?: number;
+  investorQuality?: InvestorQuality;
+  
+  // Capital efficiency & round dynamics
+  totalRaised?: number;
+  currentRoundSize?: number;
+  arrRaisedRatio?: number;
+  runwayBand?: RunwayBand;
+  burnMultipleBand?: BurnMultipleBand;
+  roundStatus?: RoundStatus;
+  hasLead?: boolean;
+  
   // VC Intelligence Fields
   founderBackground?: FounderBackground;
   teamComposition?: TeamComposition;
@@ -198,4 +236,25 @@ export interface FilterState {
   roundTypes: RoundType[];
   sectors: Sector[];
   location: string;
+  // Geography
+  regions: Region[];
+  primaryMarkets: Region[];
+  // Business model
+  businessModels: BusinessModel[];
+  companyTypes: CompanyType[];
+  targetCustomers: TargetCustomer[];
+  // Team & signal
+  founderTypes: FounderType[];
+  isSerialFounder?: boolean;
+  accelerators: Accelerator[];
+  hasFaangAlumni?: boolean;
+  hasPriorExit?: boolean;
+  investorQualities: InvestorQuality[];
+  // Capital efficiency
+  totalRaisedMin?: number;
+  totalRaisedMax?: number;
+  runwayBands: RunwayBand[];
+  burnMultipleBands: BurnMultipleBand[];
+  roundStatuses: RoundStatus[];
+  hasLead?: boolean;
 }

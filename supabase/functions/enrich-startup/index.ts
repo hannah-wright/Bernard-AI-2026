@@ -34,6 +34,26 @@ interface VCIntelligence {
   unicorn_probability: number
   product_market_fit_score: number
   investment_readiness_score: number
+  // New fields
+  region: string
+  primary_market: string
+  business_model: string
+  company_type: string
+  target_customer: string
+  founder_type: string
+  is_serial_founder: boolean
+  accelerator: string | null
+  has_faang_alumni: boolean
+  has_prior_exit: boolean
+  prior_exit_count: number
+  investor_quality: string
+  total_raised: number
+  current_round_size: number
+  arr_raised_ratio: number | null
+  runway_band: string
+  burn_multiple_band: string
+  round_status: string
+  has_lead: boolean
 }
 
 async function enrichWithAI(startup: StartupData, apiKey: string): Promise<VCIntelligence> {
@@ -118,8 +138,40 @@ Return a JSON object with these exact fields:
   },
   "unicorn_probability": 15,
   "product_market_fit_score": 65,
-  "investment_readiness_score": 70
+  "investment_readiness_score": 70,
+  "region": "US",
+  "primary_market": "US",
+  "business_model": "B2B",
+  "company_type": "SaaS",
+  "target_customer": "SMB",
+  "founder_type": "Team",
+  "is_serial_founder": false,
+  "accelerator": null,
+  "has_faang_alumni": false,
+  "has_prior_exit": false,
+  "prior_exit_count": 0,
+  "investor_quality": "Tier 2",
+  "total_raised": 5000000,
+  "current_round_size": 2000000,
+  "arr_raised_ratio": 0.1,
+  "runway_band": "12-18 months",
+  "burn_multiple_band": "1-2x",
+  "round_status": "Recently Closed",
+  "has_lead": true
 }
+
+IMPORTANT FIELD VALUES:
+- region: One of "US", "EU", "LATAM", "APAC", "MEA", "Remote/Global"
+- primary_market: One of "US", "EU", "LATAM", "APAC", "MEA", "Remote/Global"
+- business_model: One of "B2B", "B2C", "B2B2C"
+- company_type: One of "SaaS", "Marketplace", "Fintech", "Hardware", "Services", "Other"
+- target_customer: One of "SMB", "Mid-market", "Enterprise", "Consumer", "All"
+- founder_type: One of "Solo", "Team"
+- accelerator: One of "YC", "Techstars", "a16z", "500 Startups", "Other Tier-1", null
+- investor_quality: One of "Tier 1", "Tier 2", "Tier 3", "Angels only"
+- runway_band: One of "<6 months", "6-12 months", "12-18 months", "18+ months"
+- burn_multiple_band: One of "<1x", "1-2x", "2-3x", ">3x"
+- round_status: One of "Raising", "Recently Closed", "Exploring"
 
 Be realistic with scores based on the company stage. Early-stage companies should have lower scores. Consider industry benchmarks.
 ONLY return valid JSON, no other text.`
@@ -258,6 +310,26 @@ Deno.serve(async (req) => {
             unicorn_probability: intelligence.unicorn_probability,
             product_market_fit_score: intelligence.product_market_fit_score,
             investment_readiness_score: intelligence.investment_readiness_score,
+            // New fields
+            region: intelligence.region,
+            primary_market: intelligence.primary_market,
+            business_model: intelligence.business_model,
+            company_type: intelligence.company_type,
+            target_customer: intelligence.target_customer,
+            founder_type: intelligence.founder_type,
+            is_serial_founder: intelligence.is_serial_founder,
+            accelerator: intelligence.accelerator,
+            has_faang_alumni: intelligence.has_faang_alumni,
+            has_prior_exit: intelligence.has_prior_exit,
+            prior_exit_count: intelligence.prior_exit_count,
+            investor_quality: intelligence.investor_quality,
+            total_raised: intelligence.total_raised,
+            current_round_size: intelligence.current_round_size,
+            arr_raised_ratio: intelligence.arr_raised_ratio,
+            runway_band: intelligence.runway_band,
+            burn_multiple_band: intelligence.burn_multiple_band,
+            round_status: intelligence.round_status,
+            has_lead: intelligence.has_lead,
           })
           .eq('id', startup.id)
 

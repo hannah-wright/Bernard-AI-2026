@@ -57,6 +57,16 @@ const TECH_NEWS_SOURCES = [
     name: 'Indie Hackers',
     url: 'https://www.indiehackers.com/products',
     confidence: 'medium'
+  },
+  {
+    name: 'Wellfound (AngelList)',
+    url: 'https://wellfound.com/startups',
+    confidence: 'high'
+  },
+  {
+    name: 'Wellfound Funding',
+    url: 'https://wellfound.com/discover/recently-funded',
+    confidence: 'high'
   }
 ]
 
