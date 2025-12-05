@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Startup, RoundType, Sector, ConfidenceLevel } from '@/types/startup';
 import { toast } from 'sonner';
@@ -38,17 +38,23 @@ interface DatabaseDataSource {
   url: string | null;
 }
 
-async function fetchStartups(): Promise<Startup[]> {
-  // Fetch startups
+const PAGE_SIZE = 20;
+
+async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup[]; nextPage: number | null }> {
+  const from = pageParam * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Fetch startups with pagination
   const { data: startups, error: startupsError } = await supabase
     .from('startups')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (startupsError) throw startupsError;
-  if (!startups || startups.length === 0) return [];
+  if (!startups || startups.length === 0) return { startups: [], nextPage: null };
 
-  // Fetch funding rounds for all startups
+  // Fetch funding rounds for these startups
   const { data: fundingRounds, error: fundingError } = await supabase
     .from('funding_rounds')
     .select('*')
@@ -56,7 +62,7 @@ async function fetchStartups(): Promise<Startup[]> {
 
   if (fundingError) throw fundingError;
 
-  // Fetch data sources for all startups
+  // Fetch data sources for these startups
   const { data: dataSources, error: sourcesError } = await supabase
     .from('data_sources')
     .select('*')
@@ -66,7 +72,6 @@ async function fetchStartups(): Promise<Startup[]> {
 
   // Group funding rounds and data sources by startup_id
   const fundingByStartup = (fundingRounds || []).reduce<Record<string, DatabaseFundingRound>>((acc, fr) => {
-    // Keep the most recent funding round for each startup
     if (!acc[fr.startup_id] || new Date(fr.date) > new Date(acc[fr.startup_id].date)) {
       acc[fr.startup_id] = fr;
     }
@@ -80,7 +85,7 @@ async function fetchStartups(): Promise<Startup[]> {
   }, {});
 
   // Transform to Startup type
-  return startups.map((s: DatabaseStartup): Startup => {
+  const transformedStartups = startups.map((s: DatabaseStartup): Startup => {
     const funding = fundingByStartup[s.id];
     const sources = sourcesByStartup[s.id] || [];
 
@@ -120,13 +125,29 @@ async function fetchStartups(): Promise<Startup[]> {
       })),
     };
   });
+
+  // If we got a full page, there might be more
+  const nextPage = startups.length === PAGE_SIZE ? pageParam + 1 : null;
+
+  return { startups: transformedStartups, nextPage };
 }
 
 export function useStartups() {
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: ['startups'],
-    queryFn: fetchStartups,
+    queryFn: ({ pageParam }) => fetchStartupsPage(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
+
+  // Flatten all pages into a single array
+  const startups = query.data?.pages.flatMap(page => page.startups) ?? [];
+
+  return {
+    ...query,
+    data: startups,
+    startups,
+  };
 }
 
 export function useScrapeStartups() {
