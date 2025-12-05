@@ -5,6 +5,7 @@ import { useBilling } from '@/hooks/useBilling';
 import { useProfile } from '@/hooks/useProfile';
 import { BILLING_CONFIG } from '@/config/billing';
 import { Search, Bell, User, LogOut, CreditCard, Coins } from 'lucide-react';
+import logo from '@/assets/logo.jpg';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +35,8 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <a href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
-                <span className="text-sm font-bold text-background">BA</span>
-              </div>
-              <span className="font-serif font-semibold text-lg">BernardAI</span>
+            <a href="/" className="flex items-center">
+              <img src={logo} alt="BernardAI" className="h-8" />
             </a>
             <nav className="hidden md:flex items-center gap-6">
               <a href="/" className="text-sm font-medium text-foreground">
