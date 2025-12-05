@@ -231,7 +231,7 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            <span>Funded {formatDate(startup.fundingRound.date)}</span>
+            <span>Last Funded {formatDate(startup.fundingRound.date)}</span>
           </div>
           <TooltipProvider>
             <Tooltip>
