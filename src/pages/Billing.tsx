@@ -187,7 +187,7 @@ const Billing = () => {
                   <div className="flex gap-2">
                     {subscription.cancelAtPeriodEnd ? (
                       <Button
-                        variant="default"
+                        className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={reactivateSubscription}
                         disabled={processingAction === 'reactivate'}
                       >
