@@ -235,8 +235,10 @@ export interface FilterState {
   fundingMax?: number;
   roundTypes: RoundType[];
   sectors: Sector[];
-  location: string;
-  // Geography
+  // Geography - new drill-down pattern
+  countries: string[];
+  metros: string[];
+  // Legacy region filters
   regions: Region[];
   primaryMarkets: Region[];
   // Business model

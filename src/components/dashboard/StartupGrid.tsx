@@ -3,6 +3,7 @@ import { StartupCard } from './StartupCard';
 import { Button } from '@/components/ui/button';
 import { Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { locationData, countryNameToCode, getMetrosForCountries, cityBelongsToMetro } from '@/data/locationData';
 
 interface StartupGridProps {
   startups: Startup[];
@@ -47,16 +48,22 @@ export const StartupGrid = ({
       return false;
     }
 
-    // Location filter (legacy)
-    if (filters.location && filters.location !== 'any') {
-      const locationMap: Record<string, string[]> = {
-        usa: ['USA', 'United States'],
-        uk: ['UK', 'United Kingdom'],
-        eu: ['Germany', 'France', 'Netherlands', 'Spain', 'Italy', 'Poland'],
-        asia: ['China', 'Japan', 'India', 'Singapore', 'South Korea'],
-      };
-      const validCountries = locationMap[filters.location] || [];
-      if (!validCountries.includes(startup.location.country)) return false;
+    // Country filter - new drill-down pattern
+    if (filters.countries.length > 0) {
+      const startupCountryCode = countryNameToCode[startup.location.country] || startup.location.country;
+      if (!filters.countries.includes(startupCountryCode)) {
+        return false;
+      }
+
+      // Metro filter - only apply if metros are selected
+      if (filters.metros.length > 0) {
+        const availableMetros = getMetrosForCountries(filters.countries);
+        const selectedMetros = availableMetros.filter(m => filters.metros.includes(m.id));
+        const cityMatchesMetro = selectedMetros.some(m => cityBelongsToMetro(startup.location.city, m));
+        if (!cityMatchesMetro) {
+          return false;
+        }
+      }
     }
 
     // HQ Region filter
