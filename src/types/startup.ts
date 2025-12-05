@@ -19,7 +19,10 @@ export type CompanyType = 'SaaS' | 'Marketplace' | 'Fintech' | 'Hardware' | 'Ser
 export type TargetCustomer = 'SMB' | 'Mid-market' | 'Enterprise' | 'Consumer' | 'All';
 export type FounderType = 'Solo' | 'Team';
 export type Accelerator = 'YC' | 'Techstars' | 'a16z' | '500 Startups' | 'Other Tier-1' | 'None';
-export type InvestorQuality = 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Angels only';
+// Neutral, data-based investor track record labels
+export type InvestorTrackRecord = 'Unicorn-backers' | 'Multi-exit fund' | 'Established fund' | 'Angel/Seed-focus';
+// Legacy alias for backwards compatibility with database
+export type InvestorQuality = InvestorTrackRecord;
 export type RunwayBand = '<6 months' | '6-12 months' | '12-18 months' | '18+ months';
 export type BurnMultipleBand = '<1x' | '1-2x' | '2-3x' | '>3x';
 export type RoundStatus = 'Raising' | 'Recently Closed' | 'Exploring';
@@ -134,7 +137,7 @@ export interface CompetitiveLandscape {
 }
 
 export interface SocialProof {
-  cap_table_quality?: 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Angels only';
+  cap_table_quality?: InvestorTrackRecord;
   notable_investors?: string[];
   repeat_backers?: string[];
   notable_advisors?: string[];

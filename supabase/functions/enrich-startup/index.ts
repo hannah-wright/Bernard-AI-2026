@@ -126,7 +126,7 @@ Return a JSON object with these exact fields:
     "competitive_advantages": ["Feature X", "Price point"]
   },
   "social_proof": {
-    "cap_table_quality": "Tier 2",
+    "cap_table_quality": "Established fund",
     "notable_investors": [],
     "press_mentions_90d": 3,
     "press_sentiment": "Positive"
@@ -150,7 +150,7 @@ Return a JSON object with these exact fields:
   "has_faang_alumni": false,
   "has_prior_exit": false,
   "prior_exit_count": 0,
-  "investor_quality": "Tier 2",
+  "investor_quality": "Established fund",
   "total_raised": 5000000,
   "current_round_size": 2000000,
   "arr_raised_ratio": 0.1,
@@ -168,7 +168,7 @@ IMPORTANT FIELD VALUES:
 - target_customer: One of "SMB", "Mid-market", "Enterprise", "Consumer", "All"
 - founder_type: One of "Solo", "Team"
 - accelerator: One of "YC", "Techstars", "a16z", "500 Startups", "Other Tier-1", null
-- investor_quality: One of "Tier 1", "Tier 2", "Tier 3", "Angels only"
+- investor_quality: One of "Unicorn-backers" (investors who have backed unicorns), "Multi-exit fund" (funds with multiple portfolio exits), "Established fund" (known funds with track record), "Angel/Seed-focus" (angel investors and seed specialists)
 - runway_band: One of "<6 months", "6-12 months", "12-18 months", "18+ months"
 - burn_multiple_band: One of "<1x", "1-2x", "2-3x", ">3x"
 - round_status: One of "Raising", "Recently Closed", "Exploring"

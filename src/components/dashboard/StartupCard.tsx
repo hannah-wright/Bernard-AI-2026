@@ -468,12 +468,12 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
                     {startup.socialProof.cap_table_quality && (
                       <Badge 
                         className={cn(
-                          startup.socialProof.cap_table_quality === 'Tier 1' && 'bg-green-500/10 text-green-500',
-                          startup.socialProof.cap_table_quality === 'Tier 2' && 'bg-blue-500/10 text-blue-500',
-                          startup.socialProof.cap_table_quality === 'Tier 3' && 'bg-yellow-500/10 text-yellow-500',
+                          startup.socialProof.cap_table_quality === 'Unicorn-backers' && 'bg-green-500/10 text-green-500',
+                          startup.socialProof.cap_table_quality === 'Multi-exit fund' && 'bg-blue-500/10 text-blue-500',
+                          startup.socialProof.cap_table_quality === 'Established fund' && 'bg-yellow-500/10 text-yellow-500',
                         )}
                       >
-                        {startup.socialProof.cap_table_quality} Cap Table
+                        {startup.socialProof.cap_table_quality}
                       </Badge>
                     )}
                     {startup.socialProof.notable_investors?.length ? (

@@ -52,7 +52,7 @@ const companyTypes: CompanyType[] = ['SaaS', 'Marketplace', 'Fintech', 'Hardware
 const targetCustomers: TargetCustomer[] = ['SMB', 'Mid-market', 'Enterprise', 'Consumer', 'All'];
 const founderTypes: FounderType[] = ['Solo', 'Team'];
 const accelerators: Accelerator[] = ['YC', 'Techstars', 'a16z', '500 Startups', 'Other Tier-1', 'None'];
-const investorQualities: InvestorQuality[] = ['Tier 1', 'Tier 2', 'Tier 3', 'Angels only'];
+const investorTrackRecords: InvestorQuality[] = ['Unicorn-backers', 'Multi-exit fund', 'Established fund', 'Angel/Seed-focus'];
 const runwayBands: RunwayBand[] = ['<6 months', '6-12 months', '12-18 months', '18+ months'];
 const burnMultipleBands: BurnMultipleBand[] = ['<1x', '1-2x', '2-3x', '>3x'];
 const roundStatuses: RoundStatus[] = ['Raising', 'Recently Closed', 'Exploring'];
@@ -510,8 +510,8 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
         {renderCheckboxGroup(accelerators, 'accelerators', 'accel')}
       </FilterSection>
 
-      <FilterSection title="Investor Quality">
-        {renderCheckboxGroup(investorQualities, 'investorQualities', 'invq')}
+      <FilterSection title="Investor Track Record">
+        {renderCheckboxGroup(investorTrackRecords, 'investorQualities', 'invq')}
       </FilterSection>
 
       {/* Capital Efficiency */}
