@@ -84,6 +84,7 @@ const Index = () => {
   
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'ytd',
+    dateAddedRange: 'all',
     fundingMin: undefined,
     fundingMax: undefined,
     roundTypes: [],

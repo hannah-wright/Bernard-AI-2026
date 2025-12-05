@@ -66,6 +66,16 @@ const dateRanges = [
   { value: '9999', label: 'All time' },
 ];
 
+const dateAddedRanges = [
+  { value: 'all', label: 'All time' },
+  { value: 'this_week', label: 'This Week' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'last_30_days', label: 'Last 30 Days' },
+  { value: 'last_90_days', label: 'Last 90 Days' },
+  { value: 'this_year', label: 'This Year' },
+];
+
 interface FilterSidebarProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
@@ -169,6 +179,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   const clearFilters = () => {
     onFiltersChange({
       dateRange: '30',
+      dateAddedRange: 'all',
       fundingMin: undefined,
       fundingMax: undefined,
       roundTypes: [],
@@ -196,6 +207,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   };
 
   const hasActiveFilters =
+    (filters.dateAddedRange && filters.dateAddedRange !== 'all') ||
     filters.roundTypes.length > 0 ||
     filters.sectors.length > 0 ||
     filters.fundingMin !== undefined ||
@@ -221,6 +233,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
     filters.hasLead !== undefined;
 
   const activeFilterCount = [
+    (filters.dateAddedRange && filters.dateAddedRange !== 'all') ? 1 : 0,
     filters.roundTypes.length,
     filters.sectors.length,
     filters.fundingMin !== undefined ? 1 : 0,
@@ -293,6 +306,26 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
 
   const filterContent = (
     <div className="space-y-4">
+      {/* Date Added */}
+      <div className="space-y-2">
+        <Label className="text-sm text-muted-foreground">Date Added</Label>
+        <Select
+          value={filters.dateAddedRange || 'all'}
+          onValueChange={(value) => onFiltersChange({ ...filters, dateAddedRange: value })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {dateAddedRanges.map((range) => (
+              <SelectItem key={range.value} value={range.value}>
+                {range.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Last Round Date */}
       <div className="space-y-2">
         <Label className="text-sm text-muted-foreground">Last Round Date</Label>

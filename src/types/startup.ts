@@ -237,6 +237,7 @@ export interface Startup {
 
 export interface FilterState {
   dateRange: string;
+  dateAddedRange: string;
   fundingMin?: number;
   fundingMax?: number;
   roundTypes: RoundType[];

@@ -45,7 +45,50 @@ export const StartupGrid = ({
       }
     }
 
-    // Date range filter - skip for bootstrapped startups (they don't have funding dates)
+    // Date Added filter - filter by when startup was added to database
+    if (filters.dateAddedRange && filters.dateAddedRange !== 'all') {
+      const createdAt = startup.createdAt ? new Date(startup.createdAt) : null;
+      if (!createdAt) return false;
+      
+      const now = new Date();
+      let cutoffDate: Date;
+      
+      switch (filters.dateAddedRange) {
+        case 'this_week':
+          cutoffDate = new Date(now);
+          cutoffDate.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+          cutoffDate.setHours(0, 0, 0, 0);
+          break;
+        case 'this_month':
+          cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'last_month':
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+          if (createdAt < lastMonth || createdAt > endOfLastMonth) return false;
+          cutoffDate = lastMonth; // Won't be used, but set for safety
+          break;
+        case 'this_year':
+          cutoffDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'last_30_days':
+          cutoffDate = new Date(now);
+          cutoffDate.setDate(now.getDate() - 30);
+          cutoffDate.setHours(0, 0, 0, 0);
+          break;
+        case 'last_90_days':
+          cutoffDate = new Date(now);
+          cutoffDate.setDate(now.getDate() - 90);
+          cutoffDate.setHours(0, 0, 0, 0);
+          break;
+        default:
+          cutoffDate = new Date(0); // All time
+      }
+      
+      if (filters.dateAddedRange !== 'last_month' && createdAt < cutoffDate) return false;
+    }
+
+    // Date range filter (Last Round Date) - skip for bootstrapped startups (they don't have funding dates)
     if (startup.fundingRound.type !== 'Bootstrapped') {
       const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
       const [year, month, day] = fundingDateStr.split('-').map(Number);
