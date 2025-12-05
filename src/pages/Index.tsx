@@ -86,6 +86,23 @@ const Index = () => {
     roundTypes: [],
     sectors: [],
     location: '',
+    regions: [],
+    primaryMarkets: [],
+    businessModels: [],
+    companyTypes: [],
+    targetCustomers: [],
+    founderTypes: [],
+    isSerialFounder: undefined,
+    accelerators: [],
+    hasFaangAlumni: undefined,
+    hasPriorExit: undefined,
+    investorQualities: [],
+    totalRaisedMin: undefined,
+    totalRaisedMax: undefined,
+    runwayBands: [],
+    burnMultipleBands: [],
+    roundStatuses: [],
+    hasLead: undefined,
   });
 
   const scrollToDashboard = () => {

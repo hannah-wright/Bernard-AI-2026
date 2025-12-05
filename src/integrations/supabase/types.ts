@@ -273,30 +273,49 @@ export type Database = {
       }
       startups: {
         Row: {
+          accelerator: string | null
+          arr_raised_ratio: number | null
+          burn_multiple_band: string | null
+          business_model: string | null
           buzz_score: number | null
           city: string
+          company_type: string | null
           competitive_landscape: Json | null
           country: string
           created_at: string | null
+          current_round_size: number | null
           defensibility_signals: Json | null
           description: string
           eli5: string
           estimated_revenue: string | null
           estimated_size: string | null
           founder_background: Json | null
+          founder_type: string | null
+          has_faang_alumni: boolean | null
+          has_lead: boolean | null
+          has_prior_exit: boolean | null
           id: string
           investment_readiness_score: number | null
+          investor_quality: string | null
+          is_serial_founder: boolean | null
           logo: string | null
           market_context: Json | null
           name: string
+          primary_market: string | null
+          prior_exit_count: number | null
           product_info: Json | null
           product_market_fit_score: number | null
+          region: string | null
           risk_flags: Json | null
+          round_status: string | null
+          runway_band: string | null
           sectors: Database["public"]["Enums"]["sector_type"][]
           social_proof: Json | null
           state: string | null
+          target_customer: string | null
           team_composition: Json | null
           team_quality_score: number | null
+          total_raised: number | null
           traction_metrics: Json | null
           unicorn_probability: number | null
           unit_economics: Json | null
@@ -304,30 +323,49 @@ export type Database = {
           website: string
         }
         Insert: {
+          accelerator?: string | null
+          arr_raised_ratio?: number | null
+          burn_multiple_band?: string | null
+          business_model?: string | null
           buzz_score?: number | null
           city: string
+          company_type?: string | null
           competitive_landscape?: Json | null
           country: string
           created_at?: string | null
+          current_round_size?: number | null
           defensibility_signals?: Json | null
           description: string
           eli5: string
           estimated_revenue?: string | null
           estimated_size?: string | null
           founder_background?: Json | null
+          founder_type?: string | null
+          has_faang_alumni?: boolean | null
+          has_lead?: boolean | null
+          has_prior_exit?: boolean | null
           id?: string
           investment_readiness_score?: number | null
+          investor_quality?: string | null
+          is_serial_founder?: boolean | null
           logo?: string | null
           market_context?: Json | null
           name: string
+          primary_market?: string | null
+          prior_exit_count?: number | null
           product_info?: Json | null
           product_market_fit_score?: number | null
+          region?: string | null
           risk_flags?: Json | null
+          round_status?: string | null
+          runway_band?: string | null
           sectors?: Database["public"]["Enums"]["sector_type"][]
           social_proof?: Json | null
           state?: string | null
+          target_customer?: string | null
           team_composition?: Json | null
           team_quality_score?: number | null
+          total_raised?: number | null
           traction_metrics?: Json | null
           unicorn_probability?: number | null
           unit_economics?: Json | null
@@ -335,30 +373,49 @@ export type Database = {
           website: string
         }
         Update: {
+          accelerator?: string | null
+          arr_raised_ratio?: number | null
+          burn_multiple_band?: string | null
+          business_model?: string | null
           buzz_score?: number | null
           city?: string
+          company_type?: string | null
           competitive_landscape?: Json | null
           country?: string
           created_at?: string | null
+          current_round_size?: number | null
           defensibility_signals?: Json | null
           description?: string
           eli5?: string
           estimated_revenue?: string | null
           estimated_size?: string | null
           founder_background?: Json | null
+          founder_type?: string | null
+          has_faang_alumni?: boolean | null
+          has_lead?: boolean | null
+          has_prior_exit?: boolean | null
           id?: string
           investment_readiness_score?: number | null
+          investor_quality?: string | null
+          is_serial_founder?: boolean | null
           logo?: string | null
           market_context?: Json | null
           name?: string
+          primary_market?: string | null
+          prior_exit_count?: number | null
           product_info?: Json | null
           product_market_fit_score?: number | null
+          region?: string | null
           risk_flags?: Json | null
+          round_status?: string | null
+          runway_band?: string | null
           sectors?: Database["public"]["Enums"]["sector_type"][]
           social_proof?: Json | null
           state?: string | null
+          target_customer?: string | null
           team_composition?: Json | null
           team_quality_score?: number | null
+          total_raised?: number | null
           traction_metrics?: Json | null
           unicorn_probability?: number | null
           unit_economics?: Json | null
