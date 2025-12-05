@@ -174,17 +174,11 @@ const Billing = () => {
                       {subscription.isAnnual && <Badge variant="secondary">Annual</Badge>}
                       {subscription.cancelAtPeriodEnd && <Badge variant="destructive">Cancelled</Badge>}
                     </CardTitle>
-                    <CardDescription className="mt-1">
-                      {subscription.cancelAtPeriodEnd ? (
-                        subscription.subscriptionEnd ? (
-                          <>Subscription cancelled. You have access until {new Date(subscription.subscriptionEnd).toLocaleDateString()}.</>
-                        ) : (
-                          <>Subscription cancelled. You have access until the end of your billing period.</>
-                        )
-                      ) : subscription.subscriptionEnd ? (
-                        <>Renews: {new Date(subscription.subscriptionEnd).toLocaleDateString()}</>
-                      ) : null}
-                    </CardDescription>
+                    {!subscription.cancelAtPeriodEnd && subscription.subscriptionEnd && (
+                      <CardDescription className="mt-1">
+                        Renews: {new Date(subscription.subscriptionEnd).toLocaleDateString()}
+                      </CardDescription>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {subscription.cancelAtPeriodEnd ? (
@@ -211,6 +205,18 @@ const Billing = () => {
                     )}
                   </div>
                 </div>
+                {subscription.cancelAtPeriodEnd && (
+                  <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="h-4 w-4 inline mr-2" />
+                      Your subscription has been cancelled. You'll continue to have full access until{' '}
+                      {subscription.subscriptionEnd 
+                        ? <strong>{new Date(subscription.subscriptionEnd).toLocaleDateString()}</strong>
+                        : 'the end of your billing period'
+                      }.
+                    </p>
+                  </div>
+                )}
               </CardHeader>
             </Card>
           )}
