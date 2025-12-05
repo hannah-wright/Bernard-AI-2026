@@ -40,7 +40,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { locationData, getMetrosForCountries } from '@/data/locationData';
-import { useCountries } from '@/hooks/useCountries';
+import { useCountries, useMetros } from '@/hooks/useCountries';
 
 type FundingUnit = 'K' | 'M';
 
@@ -98,6 +98,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   const [totalRaisedUnit, setTotalRaisedUnit] = useState<FundingUnit>('M');
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: dbCountries = [] } = useCountries();
+  const { data: dbMetros = [] } = useMetros();
 
   const getActualValue = (displayValue: number | undefined, unit: FundingUnit): number | undefined => {
     if (displayValue === undefined) return undefined;
@@ -408,12 +409,13 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
               <span className="text-xs text-muted-foreground">Metro Area (optional)</span>
               <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border border-border p-2">
                 {filters.countries.map(countryCode => {
-                  const country = locationData.find(c => c.code === countryCode);
-                  if (!country || country.metros.length === 0) return null;
+                  const countryData = dbCountries.find(c => c.code === countryCode);
+                  const countryMetros = dbMetros.filter(m => m.countryCode === countryCode);
+                  if (countryMetros.length === 0) return null;
                   return (
                     <div key={countryCode} className="space-y-1">
-                      <span className="text-xs font-medium text-muted-foreground px-1">{country.name}</span>
-                      {country.metros.map((metro) => (
+                      <span className="text-xs font-medium text-muted-foreground px-1">{countryData?.name || countryCode}</span>
+                      {countryMetros.map((metro) => (
                         <div key={metro.id} className="flex items-center space-x-2 pl-2">
                           <Checkbox
                             id={`metro-${metro.id}`}
@@ -463,7 +465,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
                 ) : null;
               })}
               {filters.metros.map(metroId => {
-                const metro = getMetrosForCountries(filters.countries).find(m => m.id === metroId);
+                const metro = dbMetros.find(m => m.id === metroId);
                 return metro ? (
                   <Badge 
                     key={metroId} 
