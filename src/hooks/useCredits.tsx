@@ -48,24 +48,25 @@ export const useCredits = () => {
   }, [percentRemaining, credits, user, monthlyCredits]);
 
   // Show critical toast separately - only once per session
+  // Use a stable ref check before any async operations
   useEffect(() => {
-    if (!user || credits === 0) return;
+    if (!user || credits === 0 || credits > CRITICAL_CREDIT_THRESHOLD) return;
     if (hasShownCriticalToast.current) return;
     
-    if (credits <= CRITICAL_CREDIT_THRESHOLD && credits > 0) {
-      hasShownCriticalToast.current = true;
-      toast.warning(
-        `Critical: Only ${credits} credits remaining!`,
-        {
-          description: 'Upgrade your plan or purchase credits to continue.',
-          action: {
-            label: 'Go to Billing',
-            onClick: () => window.location.href = '/billing',
-          },
-          duration: 10000,
-        }
-      );
-    }
+    // Set ref immediately to prevent race conditions
+    hasShownCriticalToast.current = true;
+    
+    toast.warning(
+      `Critical: Only ${credits} credits remaining!`,
+      {
+        description: 'Upgrade your plan or purchase credits to continue.',
+        action: {
+          label: 'Go to Billing',
+          onClick: () => window.location.href = '/billing',
+        },
+        duration: 10000,
+      }
+    );
   }, [credits, user]);
 
   // Mark critical toast as shown if deduction results in critical level
