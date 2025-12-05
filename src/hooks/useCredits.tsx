@@ -67,6 +67,11 @@ export const useCredits = () => {
     }
   }, [credits, user]);
 
+  // Mark critical toast as shown if deduction results in critical level
+  const markCriticalShown = useCallback(() => {
+    hasShownCriticalToast.current = true;
+  }, []);
+
   const checkCredits = useCallback((action: CreditAction): boolean => {
     const cost = ACTION_COSTS[action];
     return credits >= cost;
@@ -117,9 +122,10 @@ export const useCredits = () => {
         // Refresh profile to update credit display
         await refreshProfile();
         
-        // Check for low credits after deduction
+        // Check for low credits after deduction - only show if not already shown this session
         const remaining = data.creditsRemaining;
-        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0) {
+        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0 && !hasShownCriticalToast.current) {
+          hasShownCriticalToast.current = true;
           toast.warning(
             `Only ${remaining} credits left!`,
             {

@@ -42,6 +42,21 @@ const TECH_NEWS_SOURCES = [
     name: 'VentureBeat Funding',
     url: 'https://venturebeat.com/category/business/deals/',
     confidence: 'high'
+  },
+  {
+    name: 'Startups.gallery',
+    url: 'https://startups.gallery/',
+    confidence: 'medium'
+  },
+  {
+    name: 'Starter Story',
+    url: 'https://www.starterstory.com/ideas',
+    confidence: 'medium'
+  },
+  {
+    name: 'Indie Hackers',
+    url: 'https://www.indiehackers.com/products',
+    confidence: 'medium'
   }
 ]
 

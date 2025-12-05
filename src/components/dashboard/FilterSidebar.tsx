@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FilterState, RoundType, Sector } from '@/types/startup';
+
+type FundingUnit = 'K' | 'M';
 
 const roundTypes: RoundType[] = ['Pre-Seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Series D+'];
 const sectors: Sector[] = ['AI/ML', 'Fintech', 'Healthcare', 'SaaS', 'E-commerce', 'Biotech', 'Climate Tech'];
@@ -31,6 +32,50 @@ interface FilterSidebarProps {
 
 export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [fundingUnit, setFundingUnit] = useState<FundingUnit>('M');
+
+  // Convert displayed value to actual value based on unit
+  const getActualValue = (displayValue: number | undefined, unit: FundingUnit): number | undefined => {
+    if (displayValue === undefined) return undefined;
+    return unit === 'K' ? displayValue * 1000 : displayValue * 1000000;
+  };
+
+  // Convert actual value to display value based on unit
+  const getDisplayValue = (actualValue: number | undefined, unit: FundingUnit): number | undefined => {
+    if (actualValue === undefined) return undefined;
+    return unit === 'K' ? actualValue / 1000 : actualValue / 1000000;
+  };
+
+  const handleFundingMinChange = (displayValue: string) => {
+    const numValue = displayValue ? Number(displayValue) : undefined;
+    onFiltersChange({
+      ...filters,
+      fundingMin: getActualValue(numValue, fundingUnit),
+    });
+  };
+
+  const handleFundingMaxChange = (displayValue: string) => {
+    const numValue = displayValue ? Number(displayValue) : undefined;
+    onFiltersChange({
+      ...filters,
+      fundingMax: getActualValue(numValue, fundingUnit),
+    });
+  };
+
+  const handleUnitChange = (newUnit: FundingUnit) => {
+    // Convert existing values to new unit
+    const currentMinDisplay = getDisplayValue(filters.fundingMin, fundingUnit);
+    const currentMaxDisplay = getDisplayValue(filters.fundingMax, fundingUnit);
+    
+    setFundingUnit(newUnit);
+    
+    // Recalculate actual values with new unit
+    onFiltersChange({
+      ...filters,
+      fundingMin: getActualValue(currentMinDisplay, newUnit),
+      fundingMax: getActualValue(currentMaxDisplay, newUnit),
+    });
+  };
 
   const handleRoundTypeChange = (roundType: RoundType, checked: boolean) => {
     const newRoundTypes = checked
@@ -106,30 +151,44 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
 
           {/* Funding Amount */}
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Funding Amount (M)</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm text-muted-foreground">Funding Amount</Label>
+              <div className="flex rounded-md border border-border overflow-hidden">
+                <button
+                  onClick={() => handleUnitChange('K')}
+                  className={`px-2 py-0.5 text-xs transition-colors ${
+                    fundingUnit === 'K'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  K
+                </button>
+                <button
+                  onClick={() => handleUnitChange('M')}
+                  className={`px-2 py-0.5 text-xs transition-colors ${
+                    fundingUnit === 'M'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  M
+                </button>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Input
                 type="number"
-                placeholder="Min"
-                value={filters.fundingMin ?? ''}
-                onChange={(e) =>
-                  onFiltersChange({
-                    ...filters,
-                    fundingMin: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
+                placeholder={`Min (${fundingUnit})`}
+                value={getDisplayValue(filters.fundingMin, fundingUnit) ?? ''}
+                onChange={(e) => handleFundingMinChange(e.target.value)}
                 className="w-full"
               />
               <Input
                 type="number"
-                placeholder="Max"
-                value={filters.fundingMax ?? ''}
-                onChange={(e) =>
-                  onFiltersChange({
-                    ...filters,
-                    fundingMax: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
+                placeholder={`Max (${fundingUnit})`}
+                value={getDisplayValue(filters.fundingMax, fundingUnit) ?? ''}
+                onChange={(e) => handleFundingMaxChange(e.target.value)}
                 className="w-full"
               />
             </div>
