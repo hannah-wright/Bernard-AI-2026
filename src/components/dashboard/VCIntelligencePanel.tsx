@@ -140,10 +140,10 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* AI Scores */}
       {hasScores && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <ScoreBadge score={startup.unicornProbability} label="Unicorn Probability" tooltip={methodologyText.unicornProbability} />
-          <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality} />
-          <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore} />
-          <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness} />
+          <ScoreBadge score={startup.unicornProbability} label="Unicorn Probability" tooltip={methodologyText.unicornProbability.detail} />
+          <ScoreBadge score={startup.teamQualityScore} label="Team Quality" tooltip={methodologyText.teamQuality.detail} />
+          <ScoreBadge score={startup.productMarketFitScore} label="PMF Score" tooltip={methodologyText.pmfScore.detail} />
+          <ScoreBadge score={startup.investmentReadinessScore} label="Investment Ready" tooltip={methodologyText.investmentReadiness.detail} />
         </div>
       )}
 
@@ -375,7 +375,7 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
       {/* Social Proof */}
       {hasSocialData && (
         <div>
-          <SectionHeader icon={Award} title="Social Proof" tooltip={methodologyText.capTableQuality} />
+          <SectionHeader icon={Award} title="Social Proof" tooltip={methodologyText.capTableQuality.detail} />
           <div className="space-y-3">
             {startup.socialProof?.cap_table_quality && (
               <Badge 
