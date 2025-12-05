@@ -48,54 +48,51 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    // Get current credits
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("credits_remaining")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) throw new Error(`Profile error: ${profileError.message}`);
+    // Use the RPC function to deduct credits (bypasses the secure_profile_update trigger)
+    const actionDescription = description || `${action}${resourceId ? ` (${resourceId})` : ''}`;
     
-    const currentCredits = profile?.credits_remaining ?? 0;
-    logStep("Current credits", { currentCredits, cost });
-
-    // Check if user has enough credits
-    if (currentCredits < cost) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: "insufficient_credits",
-        creditsRequired: cost,
-        creditsRemaining: currentCredits,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 402, // Payment Required
+    const { data: rpcResult, error: rpcError } = await supabase
+      .rpc('deduct_user_credits', {
+        target_user_id: user.id,
+        amount: cost,
+        action_description: actionDescription
       });
+
+    if (rpcError) {
+      logStep("RPC error", { error: rpcError.message });
+      throw new Error(`Credit deduction failed: ${rpcError.message}`);
     }
 
-    // Deduct credits
-    const newCredits = currentCredits - cost;
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ credits_remaining: newCredits })
-      .eq("id", user.id);
+    const result = rpcResult?.[0];
+    
+    if (!result) {
+      throw new Error("No result from credit deduction");
+    }
 
-    if (updateError) throw new Error(`Update error: ${updateError.message}`);
+    if (!result.success) {
+      logStep("Deduction failed", { error: result.error_message });
+      
+      if (result.error_message === 'Insufficient credits') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "insufficient_credits",
+          creditsRequired: cost,
+          creditsRemaining: result.new_balance,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402,
+        });
+      }
+      
+      throw new Error(result.error_message || "Credit deduction failed");
+    }
 
-    // Log transaction
-    await supabase.from("credit_transactions").insert({
-      user_id: user.id,
-      amount: -cost,
-      type: "usage",
-      description: description || `${action}${resourceId ? ` (${resourceId})` : ''}`,
-    });
-
-    logStep("Credits deducted", { cost, newCredits });
+    logStep("Credits deducted successfully", { cost, newCredits: result.new_balance });
 
     return new Response(JSON.stringify({
       success: true,
       creditsDeducted: cost,
-      creditsRemaining: newCredits,
+      creditsRemaining: result.new_balance,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
