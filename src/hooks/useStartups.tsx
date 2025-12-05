@@ -114,6 +114,28 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
         confidence: ds.confidence as ConfidenceLevel,
         url: ds.url || undefined,
       })),
+      // Geography & Business Model fields
+      region: s.region as Startup['region'],
+      primaryMarket: s.primary_market as Startup['primaryMarket'],
+      businessModel: s.business_model as Startup['businessModel'],
+      companyType: s.company_type as Startup['companyType'],
+      targetCustomer: s.target_customer as Startup['targetCustomer'],
+      // Team & Signal fields
+      founderType: s.founder_type as Startup['founderType'],
+      isSerialFounder: s.is_serial_founder ?? undefined,
+      accelerator: s.accelerator as Startup['accelerator'],
+      hasFaangAlumni: s.has_faang_alumni ?? undefined,
+      hasPriorExit: s.has_prior_exit ?? undefined,
+      priorExitCount: s.prior_exit_count ?? undefined,
+      investorQuality: s.investor_quality as Startup['investorQuality'],
+      // Capital efficiency fields
+      totalRaised: s.total_raised ?? undefined,
+      currentRoundSize: s.current_round_size ?? undefined,
+      arrRaisedRatio: s.arr_raised_ratio ? Number(s.arr_raised_ratio) : undefined,
+      runwayBand: s.runway_band as Startup['runwayBand'],
+      burnMultipleBand: s.burn_multiple_band as Startup['burnMultipleBand'],
+      roundStatus: s.round_status as Startup['roundStatus'],
+      hasLead: s.has_lead ?? undefined,
       // VC Intelligence Fields
       founderBackground: parseJsonField<FounderBackground>(s.founder_background),
       teamComposition: parseJsonField<TeamComposition>(s.team_composition),

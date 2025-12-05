@@ -363,109 +363,11 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
         {renderCheckboxGroup(sectors, 'sectors', 'sector')}
       </FilterSection>
 
-      {/* Geography */}
-      <FilterSection title="HQ Region">
-        {renderCheckboxGroup(regions, 'regions', 'region')}
-      </FilterSection>
-
-      <FilterSection title="Primary Market">
-        {renderCheckboxGroup(regions, 'primaryMarkets', 'market')}
-      </FilterSection>
-
-      {/* Business Model */}
-      <FilterSection title="Business Model">
-        {renderCheckboxGroup(businessModels, 'businessModels', 'bmodel')}
-      </FilterSection>
-
-      <FilterSection title="Company Type">
-        {renderCheckboxGroup(companyTypes, 'companyTypes', 'ctype')}
-      </FilterSection>
-
-      <FilterSection title="Target Customer">
-        {renderCheckboxGroup(targetCustomers, 'targetCustomers', 'tcust')}
-      </FilterSection>
-
-      {/* Team & Signal */}
-      <FilterSection title="Founder Type">
-        {renderCheckboxGroup(founderTypes, 'founderTypes', 'ftype')}
-      </FilterSection>
-
-      <FilterSection title="Team Signals">
-        {renderBooleanFilter('Serial Founder', 'isSerialFounder', 'serial-founder')}
-        {renderBooleanFilter('Ex-FAANG Alumni', 'hasFaangAlumni', 'faang-alumni')}
-        {renderBooleanFilter('Prior Exit', 'hasPriorExit', 'prior-exit')}
-      </FilterSection>
-
-      <FilterSection title="Accelerator">
-        {renderCheckboxGroup(accelerators, 'accelerators', 'accel')}
-      </FilterSection>
-
-      <FilterSection title="Investor Quality">
-        {renderCheckboxGroup(investorQualities, 'investorQualities', 'invq')}
-      </FilterSection>
-
-      {/* Capital Efficiency */}
-      <FilterSection title="Total Raised">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">Amount</span>
-          <div className="flex rounded-md border border-border overflow-hidden">
-            <button
-              onClick={() => handleTotalRaisedUnitChange('K')}
-              className={`px-2 py-0.5 text-xs transition-colors ${
-                totalRaisedUnit === 'K'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              K
-            </button>
-            <button
-              onClick={() => handleTotalRaisedUnitChange('M')}
-              className={`px-2 py-0.5 text-xs transition-colors ${
-                totalRaisedUnit === 'M'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              M
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            placeholder={`Min (${totalRaisedUnit})`}
-            value={getDisplayValue(filters.totalRaisedMin, totalRaisedUnit) ?? ''}
-            onChange={(e) => handleTotalRaisedMinChange(e.target.value)}
-          />
-          <Input
-            type="number"
-            placeholder={`Max (${totalRaisedUnit})`}
-            value={getDisplayValue(filters.totalRaisedMax, totalRaisedUnit) ?? ''}
-            onChange={(e) => handleTotalRaisedMaxChange(e.target.value)}
-          />
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Runway">
-        {renderCheckboxGroup(runwayBands, 'runwayBands', 'runway')}
-      </FilterSection>
-
-      <FilterSection title="Burn Multiple">
-        {renderCheckboxGroup(burnMultipleBands, 'burnMultipleBands', 'burn')}
-      </FilterSection>
-
-      <FilterSection title="Round Status">
-        {renderCheckboxGroup(roundStatuses, 'roundStatuses', 'rstatus')}
-        {renderBooleanFilter('Has Lead Investor', 'hasLead', 'has-lead')}
-      </FilterSection>
-
-      {/* Location - Country & Metro drill-down */}
-      <FilterSection title="Location" defaultOpen>
+      {/* Location - HQ Region & Metro drill-down */}
+      <FilterSection title="HQ Region" defaultOpen>
         <div className="space-y-3">
-          {/* Country selector */}
+          {/* Region/Country selector */}
           <div className="space-y-2">
-            <span className="text-xs text-muted-foreground">Country</span>
             <div className="max-h-48 overflow-y-auto space-y-2 rounded-md border border-border p-2">
               {locationData.map((country) => (
                 <div key={country.code} className="flex items-center space-x-2">
@@ -570,6 +472,94 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
             </div>
           )}
         </div>
+      </FilterSection>
+
+      {/* Business Model */}
+      <FilterSection title="Business Model">
+        {renderCheckboxGroup(businessModels, 'businessModels', 'bmodel')}
+      </FilterSection>
+
+      <FilterSection title="Company Type">
+        {renderCheckboxGroup(companyTypes, 'companyTypes', 'ctype')}
+      </FilterSection>
+
+      <FilterSection title="Target Customer">
+        {renderCheckboxGroup(targetCustomers, 'targetCustomers', 'tcust')}
+      </FilterSection>
+
+      {/* Team & Signal */}
+      <FilterSection title="Founder Type">
+        {renderCheckboxGroup(founderTypes, 'founderTypes', 'ftype')}
+      </FilterSection>
+
+      <FilterSection title="Team Signals">
+        {renderBooleanFilter('Serial Founder', 'isSerialFounder', 'serial-founder')}
+        {renderBooleanFilter('Ex-FAANG Alumni', 'hasFaangAlumni', 'faang-alumni')}
+        {renderBooleanFilter('Prior Exit', 'hasPriorExit', 'prior-exit')}
+      </FilterSection>
+
+      <FilterSection title="Accelerator">
+        {renderCheckboxGroup(accelerators, 'accelerators', 'accel')}
+      </FilterSection>
+
+      <FilterSection title="Investor Quality">
+        {renderCheckboxGroup(investorQualities, 'investorQualities', 'invq')}
+      </FilterSection>
+
+      {/* Capital Efficiency */}
+      <FilterSection title="Total Raised">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Amount</span>
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => handleTotalRaisedUnitChange('K')}
+              className={`px-2 py-0.5 text-xs transition-colors ${
+                totalRaisedUnit === 'K'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              K
+            </button>
+            <button
+              onClick={() => handleTotalRaisedUnitChange('M')}
+              className={`px-2 py-0.5 text-xs transition-colors ${
+                totalRaisedUnit === 'M'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              M
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            placeholder={`Min (${totalRaisedUnit})`}
+            value={getDisplayValue(filters.totalRaisedMin, totalRaisedUnit) ?? ''}
+            onChange={(e) => handleTotalRaisedMinChange(e.target.value)}
+          />
+          <Input
+            type="number"
+            placeholder={`Max (${totalRaisedUnit})`}
+            value={getDisplayValue(filters.totalRaisedMax, totalRaisedUnit) ?? ''}
+            onChange={(e) => handleTotalRaisedMaxChange(e.target.value)}
+          />
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Runway">
+        {renderCheckboxGroup(runwayBands, 'runwayBands', 'runway')}
+      </FilterSection>
+
+      <FilterSection title="Burn Multiple">
+        {renderCheckboxGroup(burnMultipleBands, 'burnMultipleBands', 'burn')}
+      </FilterSection>
+
+      <FilterSection title="Round Status">
+        {renderCheckboxGroup(roundStatuses, 'roundStatuses', 'rstatus')}
+        {renderBooleanFilter('Has Lead Investor', 'hasLead', 'has-lead')}
       </FilterSection>
     </div>
   );
