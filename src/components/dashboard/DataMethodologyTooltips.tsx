@@ -1,4 +1,4 @@
-import { Info, Sparkles, CheckCircle2 } from 'lucide-react';
+import { HelpCircle, CheckCircle2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -59,7 +59,7 @@ export const MethodologyTooltip = ({ text, children, className }: MethodologyToo
     <Tooltip>
       <TooltipTrigger asChild>
         <span className={cn("inline-flex items-center cursor-help", className)}>
-          {children || <Info className="h-3 w-3 text-muted-foreground/60 hover:text-muted-foreground transition-colors" />}
+          {children || <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground transition-colors" />}
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
@@ -86,12 +86,12 @@ export const EstimatedValue = ({ children, tooltip, className }: EstimatedValueP
           className
         )}>
           {children}
-          <Sparkles className="h-2.5 w-2.5 text-muted-foreground/50" />
+          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
         <div className="flex items-start gap-1.5">
-          <Sparkles className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
           <span>{tooltip}</span>
         </div>
       </TooltipContent>
@@ -136,16 +136,17 @@ interface DataLabelProps {
   className?: string;
 }
 
-// Label component that shows estimated indicator inline
+// Label component that shows estimated indicator inline with "Est." text
 export const DataLabel = ({ label, isEstimated = true, tooltip, className }: DataLabelProps) => (
-  <div className={cn("flex items-center gap-1.5", className)}>
+  <div className={cn("flex items-center justify-between mb-1", className)}>
     <span className="text-xs text-muted-foreground">{label}</span>
     {isEstimated && tooltip && (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/60 cursor-help">
-              <Sparkles className="h-2 w-2" />
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 cursor-help">
+              <HelpCircle className="h-3 w-3" />
+              Est.
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[220px] text-xs">
