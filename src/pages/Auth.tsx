@@ -22,7 +22,6 @@ const Auth = () => {
   const [inviteCode, setInviteCode] = useState(searchParams.get('code') || '');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRedeemingCode, setIsRedeemingCode] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
@@ -36,43 +35,6 @@ const Auth = () => {
       navigate('/');
     }
   }, [user]);
-
-  // Redeem invite code immediately after signup (before email confirmation)
-  const redeemInviteCodeAfterSignup = async () => {
-    if (!inviteCode) return;
-    
-    setIsRedeemingCode(true);
-    try {
-      // Get current session to make authenticated request
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        console.log('No session available for invite redemption');
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('redeem-invite', {
-        body: { code: inviteCode },
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: 'Trial activated!',
-          description: data.message,
-        });
-      } else {
-        const { title, description } = getInviteErrorMessage(data.error || '');
-        toast({ title, description, variant: 'destructive' });
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      const { title, description } = getInviteErrorMessage(errorMessage);
-      toast({ title, description, variant: 'destructive' });
-    } finally {
-      setIsRedeemingCode(false);
-    }
-  };
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string; inviteCode?: string } = {};
@@ -227,13 +189,11 @@ const Auth = () => {
           });
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, inviteCode);
         if (error) {
           const { title, description } = getSignupErrorMessage(error);
           toast({ title, description, variant: 'destructive' });
         } else {
-          // Immediately redeem invite code after successful signup
-          await redeemInviteCodeAfterSignup();
           setShowEmailConfirmation(true);
         }
       }
@@ -434,9 +394,9 @@ const Auth = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting || isRedeemingCode}
+                disabled={isSubmitting}
               >
-                {isSubmitting ? 'Please wait...' : isRedeemingCode ? 'Activating trial...' : isLogin ? 'Sign In' : 'Create Account'}
+                {isSubmitting ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
               </Button>
             </form>
             
