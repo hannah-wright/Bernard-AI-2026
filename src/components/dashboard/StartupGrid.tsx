@@ -42,29 +42,33 @@ export const StartupGrid = ({
       }
     }
 
-    // Date range filter - use date-only comparison to avoid timezone issues
-    const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
-    const [year, month, day] = fundingDateStr.split('-').map(Number);
-    const fundingDate = new Date(year, month - 1, day); // Local timezone
-    
-    let cutoffDate: Date;
-    
-    if (filters.dateRange === 'ytd') {
-      // Year to date: from January 1st of current year
-      cutoffDate = new Date(new Date().getFullYear(), 0, 1);
-    } else {
-      const daysAgo = parseInt(filters.dateRange);
-      cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+    // Date range filter - skip for bootstrapped startups (they don't have funding dates)
+    if (startup.fundingRound.type !== 'Bootstrapped') {
+      const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
+      const [year, month, day] = fundingDateStr.split('-').map(Number);
+      const fundingDate = new Date(year, month - 1, day); // Local timezone
+      
+      let cutoffDate: Date;
+      
+      if (filters.dateRange === 'ytd') {
+        // Year to date: from January 1st of current year
+        cutoffDate = new Date(new Date().getFullYear(), 0, 1);
+      } else {
+        const daysAgo = parseInt(filters.dateRange);
+        cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+      }
+      // Set to start of day for fair comparison
+      cutoffDate.setHours(0, 0, 0, 0);
+      
+      if (fundingDate < cutoffDate) return false;
     }
-    // Set to start of day for fair comparison
-    cutoffDate.setHours(0, 0, 0, 0);
-    
-    if (fundingDate < cutoffDate) return false;
 
-    // Current round size filter (fundingMin/Max)
-    if (filters.fundingMin !== undefined && startup.fundingRound.amount < filters.fundingMin) return false;
-    if (filters.fundingMax !== undefined && startup.fundingRound.amount > filters.fundingMax) return false;
+    // Current round size filter (fundingMin/Max) - skip for bootstrapped startups
+    if (startup.fundingRound.type !== 'Bootstrapped') {
+      if (filters.fundingMin !== undefined && startup.fundingRound.amount < filters.fundingMin) return false;
+      if (filters.fundingMax !== undefined && startup.fundingRound.amount > filters.fundingMax) return false;
+    }
 
     // Round type filter
     if (filters.roundTypes.length > 0 && !filters.roundTypes.includes(startup.fundingRound.type)) {

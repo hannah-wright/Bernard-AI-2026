@@ -229,10 +229,17 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>Last Funded {formatDate(startup.fundingRound.date)}</span>
-          </div>
+          {startup.fundingRound.type !== 'Bootstrapped' ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>Last Funded {formatDate(startup.fundingRound.date)}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Building2 className="h-3 w-3" />
+              <span>Self-funded</span>
+            </div>
+          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
