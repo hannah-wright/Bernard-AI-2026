@@ -179,7 +179,7 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   const clearFilters = () => {
     onFiltersChange({
       dateRange: '30',
-      dateAddedRange: 'all',
+      dateAddedRange: 'this_week',
       fundingMin: undefined,
       fundingMax: undefined,
       roundTypes: [],
