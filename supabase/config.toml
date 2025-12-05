@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.redeem-invite]
 verify_jwt = false
+
+[functions.enrich-startup]
+verify_jwt = false
