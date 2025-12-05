@@ -3,6 +3,7 @@ import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Users, DollarSign, C
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceBadge } from './ConfidenceBadge';
+import { VCIntelligencePanel } from './VCIntelligencePanel';
 import { Startup } from '@/types/startup';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 interface StartupCardProps {
@@ -191,7 +193,7 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center">
@@ -212,98 +214,109 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
             </div>
           </DialogHeader>
 
-          <div className="space-y-6 mt-4">
-            {/* Funding Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-sm">Funding Round</span>
+          <Tabs defaultValue="overview" className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="intelligence">VC Intelligence</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-6 mt-4">
+              {/* Funding Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg bg-secondary/50 p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="text-sm">Funding Round</span>
+                  </div>
+                  <p className="text-2xl font-semibold">{formatCurrency(startup.fundingRound.amount)}</p>
+                  <Badge className="mt-2">{startup.fundingRound.type}</Badge>
                 </div>
-                <p className="text-2xl font-semibold">{formatCurrency(startup.fundingRound.amount)}</p>
-                <Badge className="mt-2">{startup.fundingRound.type}</Badge>
+                <div className="rounded-lg bg-secondary/50 p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">Lead Investors</span>
+                  </div>
+                  <div className="space-y-1">
+                    {startup.fundingRound.leadInvestors.map((investor) => (
+                      <p key={investor} className="text-sm font-medium">{investor}</p>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="rounded-lg bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm">Lead Investors</span>
-                </div>
-                <div className="space-y-1">
-                  {startup.fundingRound.leadInvestors.map((investor) => (
-                    <p key={investor} className="text-sm font-medium">{investor}</p>
+
+              {/* Industry */}
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Industry</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {startup.sector.map((s) => (
+                    <Badge key={s} variant="outline">
+                      {s}
+                    </Badge>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Industry */}
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Industry</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {startup.sector.map((s) => (
-                  <Badge key={s} variant="outline">
-                    {s}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* ELI5 */}
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">What they do (ELI5)</h4>
-              <p className="text-foreground">{startup.eli5}</p>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-3 gap-4">
+              {/* ELI5 */}
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Est. Revenue</p>
-                <p className="font-medium">{startup.metrics.estimatedRevenue || 'N/A'}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">What they do (ELI5)</h4>
+                <p className="text-foreground">{startup.eli5}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Est. Size</p>
-                <p className="font-medium">{startup.metrics.estimatedSize || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Buzz Score</p>
-                <p className="font-medium">{startup.metrics.buzzScore}/100</p>
-              </div>
-            </div>
 
-            {/* Data Verification */}
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Data Verification</h4>
-              <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
-                <ConfidenceBadge level={highestConfidence} />
-                <span className="text-sm text-muted-foreground">
-                  Verified from {startup.dataSources.length} independent source{startup.dataSources.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-3 pt-4 border-t border-border">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground mb-1">Website URL</p>
-                  <p className="text-sm font-medium truncate">{startup.website}</p>
+              {/* Metrics */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Est. Revenue</p>
+                  <p className="font-medium">{startup.metrics.estimatedRevenue || 'N/A'}</p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={startup.website} target="_blank" rel="noopener noreferrer">
-                    Open website
-                    <ExternalLink className="h-3 w-3 ml-1.5" />
-                  </a>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Est. Size</p>
+                  <p className="font-medium">{startup.metrics.estimatedSize || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Buzz Score</p>
+                  <p className="font-medium">{startup.metrics.buzzScore}/100</p>
+                </div>
+              </div>
+
+              {/* Data Verification */}
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Data Verification</h4>
+                <div className="flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
+                  <ConfidenceBadge level={highestConfidence} />
+                  <span className="text-sm text-muted-foreground">
+                    Verified from {startup.dataSources.length} independent source{startup.dataSources.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col gap-3 pt-4 border-t border-border">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-1">Website URL</p>
+                    <p className="text-sm font-medium truncate">{startup.website}</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={startup.website} target="_blank" rel="noopener noreferrer">
+                      Open website
+                      <ExternalLink className="h-3 w-3 ml-1.5" />
+                    </a>
+                  </Button>
+                </div>
+                <Button
+                  variant={isFavorite ? 'secondary' : 'outline'}
+                  onClick={handleFavoriteClick}
+                >
+                  <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
+                  {isFavorite ? 'Saved' : 'Save'}
                 </Button>
               </div>
-              <Button
-                variant={isFavorite ? 'secondary' : 'outline'}
-                onClick={handleFavoriteClick}
-              >
-                <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
-                {isFavorite ? 'Saved' : 'Save'}
-              </Button>
-            </div>
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="intelligence" className="mt-4">
+              <VCIntelligencePanel startup={startup} />
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </>

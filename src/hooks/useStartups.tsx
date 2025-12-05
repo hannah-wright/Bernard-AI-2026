@@ -1,25 +1,8 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Startup, RoundType, Sector, ConfidenceLevel } from '@/types/startup';
+import { Startup, RoundType, Sector, ConfidenceLevel, FounderBackground, TeamComposition, TractionMetrics, UnitEconomics, ProductInfo, DefensibilitySignals, MarketContext, CompetitiveLandscape, SocialProof, RiskFlags } from '@/types/startup';
 import { toast } from 'sonner';
-
-interface DatabaseStartup {
-  id: string;
-  name: string;
-  logo: string | null;
-  description: string;
-  eli5: string;
-  website: string;
-  sectors: string[];
-  city: string;
-  state: string | null;
-  country: string;
-  estimated_revenue: string | null;
-  estimated_size: string | null;
-  buzz_score: number | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+import { Json } from '@/integrations/supabase/types';
 
 interface DatabaseFundingRound {
   id: string;
@@ -39,6 +22,14 @@ interface DatabaseDataSource {
 }
 
 const PAGE_SIZE = 20;
+
+// Helper to safely parse JSON fields
+function parseJsonField<T>(field: Json | null | undefined): T | undefined {
+  if (!field || typeof field === 'string' || typeof field === 'number' || typeof field === 'boolean') {
+    return undefined;
+  }
+  return field as T;
+}
 
 async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup[]; nextPage: number | null }> {
   const from = pageParam * PAGE_SIZE;
@@ -85,7 +76,7 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
   }, {});
 
   // Transform to Startup type
-  const transformedStartups = startups.map((s: DatabaseStartup): Startup => {
+  const transformedStartups = startups.map((s): Startup => {
     const funding = fundingByStartup[s.id];
     const sources = sourcesByStartup[s.id] || [];
 
@@ -123,6 +114,21 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
         confidence: ds.confidence as ConfidenceLevel,
         url: ds.url || undefined,
       })),
+      // VC Intelligence Fields
+      founderBackground: parseJsonField<FounderBackground>(s.founder_background),
+      teamComposition: parseJsonField<TeamComposition>(s.team_composition),
+      teamQualityScore: s.team_quality_score ?? undefined,
+      tractionMetrics: parseJsonField<TractionMetrics>(s.traction_metrics),
+      unitEconomics: parseJsonField<UnitEconomics>(s.unit_economics),
+      productInfo: parseJsonField<ProductInfo>(s.product_info),
+      defensibilitySignals: parseJsonField<DefensibilitySignals>(s.defensibility_signals),
+      marketContext: parseJsonField<MarketContext>(s.market_context),
+      competitiveLandscape: parseJsonField<CompetitiveLandscape>(s.competitive_landscape),
+      socialProof: parseJsonField<SocialProof>(s.social_proof),
+      riskFlags: parseJsonField<RiskFlags>(s.risk_flags),
+      unicornProbability: s.unicorn_probability ?? undefined,
+      productMarketFitScore: s.product_market_fit_score ?? undefined,
+      investmentReadinessScore: s.investment_readiness_score ?? undefined,
     };
   });
 

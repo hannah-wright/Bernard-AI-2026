@@ -275,51 +275,93 @@ export type Database = {
         Row: {
           buzz_score: number | null
           city: string
+          competitive_landscape: Json | null
           country: string
           created_at: string | null
+          defensibility_signals: Json | null
           description: string
           eli5: string
           estimated_revenue: string | null
           estimated_size: string | null
+          founder_background: Json | null
           id: string
+          investment_readiness_score: number | null
           logo: string | null
+          market_context: Json | null
           name: string
+          product_info: Json | null
+          product_market_fit_score: number | null
+          risk_flags: Json | null
           sectors: Database["public"]["Enums"]["sector_type"][]
+          social_proof: Json | null
           state: string | null
+          team_composition: Json | null
+          team_quality_score: number | null
+          traction_metrics: Json | null
+          unicorn_probability: number | null
+          unit_economics: Json | null
           updated_at: string | null
           website: string
         }
         Insert: {
           buzz_score?: number | null
           city: string
+          competitive_landscape?: Json | null
           country: string
           created_at?: string | null
+          defensibility_signals?: Json | null
           description: string
           eli5: string
           estimated_revenue?: string | null
           estimated_size?: string | null
+          founder_background?: Json | null
           id?: string
+          investment_readiness_score?: number | null
           logo?: string | null
+          market_context?: Json | null
           name: string
+          product_info?: Json | null
+          product_market_fit_score?: number | null
+          risk_flags?: Json | null
           sectors?: Database["public"]["Enums"]["sector_type"][]
+          social_proof?: Json | null
           state?: string | null
+          team_composition?: Json | null
+          team_quality_score?: number | null
+          traction_metrics?: Json | null
+          unicorn_probability?: number | null
+          unit_economics?: Json | null
           updated_at?: string | null
           website: string
         }
         Update: {
           buzz_score?: number | null
           city?: string
+          competitive_landscape?: Json | null
           country?: string
           created_at?: string | null
+          defensibility_signals?: Json | null
           description?: string
           eli5?: string
           estimated_revenue?: string | null
           estimated_size?: string | null
+          founder_background?: Json | null
           id?: string
+          investment_readiness_score?: number | null
           logo?: string | null
+          market_context?: Json | null
           name?: string
+          product_info?: Json | null
+          product_market_fit_score?: number | null
+          risk_flags?: Json | null
           sectors?: Database["public"]["Enums"]["sector_type"][]
+          social_proof?: Json | null
           state?: string | null
+          team_composition?: Json | null
+          team_quality_score?: number | null
+          traction_metrics?: Json | null
+          unicorn_probability?: number | null
+          unit_economics?: Json | null
           updated_at?: string | null
           website?: string
         }
