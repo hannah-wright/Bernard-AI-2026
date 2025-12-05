@@ -250,17 +250,22 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { startupId, enrichAll } = await req.json()
+    const { startupId, enrichAll, forceReenrich } = await req.json()
 
     let startupsToEnrich: StartupData[] = []
 
     if (enrichAll) {
-      // Enrich all startups that don't have intelligence data yet
-      const { data: startups, error } = await supabase
+      // Enrich startups - either all or only those without data
+      let query = supabase
         .from('startups')
         .select('id, name, description, eli5, website, sectors, city, country, estimated_revenue, estimated_size, buzz_score')
-        .is('unicorn_probability', null)
-        .limit(10) // Process 10 at a time to avoid timeouts
+      
+      // If not forcing re-enrich, only get startups without region (new field)
+      if (!forceReenrich) {
+        query = query.is('region', null)
+      }
+      
+      const { data: startups, error } = await query.limit(10) // Process 10 at a time
 
       if (error) throw error
       startupsToEnrich = startups || []
