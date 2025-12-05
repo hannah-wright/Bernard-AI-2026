@@ -88,8 +88,14 @@ serve(async (req) => {
     const subscriptionItem = subscription.items.data[0];
     const productId = subscriptionItem.price.product as string;
     const priceId = subscriptionItem.price.id;
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-    const currentPeriodStart = new Date(subscription.current_period_start * 1000).toISOString();
+    
+    // Safely convert timestamps
+    const subscriptionEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString() 
+      : null;
+    const currentPeriodStart = subscription.current_period_start 
+      ? new Date(subscription.current_period_start * 1000).toISOString() 
+      : null;
 
     logStep("Subscription found", {
       subscriptionId: subscription.id,
