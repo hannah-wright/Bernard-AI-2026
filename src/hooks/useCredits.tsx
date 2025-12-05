@@ -124,20 +124,11 @@ export const useCredits = () => {
         // Refresh profile to update credit display
         await refreshProfile();
         
-        // Check for low credits after deduction - only show if not already shown this session
+        // Mark critical as shown if we're now at critical level
+        // The useEffect will handle showing the toast
         const remaining = data.creditsRemaining;
-        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0 && !hasShownCriticalToast.current) {
+        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0) {
           hasShownCriticalToast.current = true;
-          toast.warning(
-            `Only ${remaining} credits left!`,
-            {
-              description: 'Running low on credits.',
-              action: {
-                label: 'Get More',
-                onClick: () => window.location.href = '/billing',
-              },
-            }
-          );
         }
         
         return { success: true, creditsRemaining: remaining };
