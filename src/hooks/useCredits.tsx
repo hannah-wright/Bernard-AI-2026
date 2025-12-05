@@ -23,6 +23,7 @@ export const useCredits = () => {
   const { profile, refreshProfile } = useProfile();
   const { subscription } = useBilling();
   const hasShownModalThisSession = useRef<boolean>(false);
+  const hasShownCriticalToast = useRef<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const credits = profile?.credits_remaining ?? 0;
@@ -45,11 +46,13 @@ export const useCredits = () => {
     }
   }, [percentRemaining, credits, user, monthlyCredits]);
 
-  // Show critical toast separately
+  // Show critical toast separately - only once per session
   useEffect(() => {
     if (!user || credits === 0) return;
+    if (hasShownCriticalToast.current) return;
     
     if (credits <= CRITICAL_CREDIT_THRESHOLD && credits > 0) {
+      hasShownCriticalToast.current = true;
       toast.warning(
         `Critical: Only ${credits} credits remaining!`,
         {

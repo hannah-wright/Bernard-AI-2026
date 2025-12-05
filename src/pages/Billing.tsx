@@ -49,6 +49,13 @@ const Billing = () => {
   const [wantsPause, setWantsPause] = useState(false);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
+  // Refresh profile on mount to get accurate credits
+  useEffect(() => {
+    if (user) {
+      refreshProfile();
+    }
+  }, [user, refreshProfile]);
+
   // Handle URL params for success/cancel
   useEffect(() => {
     const success = searchParams.get('success');
