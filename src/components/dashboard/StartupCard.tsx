@@ -231,12 +231,21 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            <span>{formatDate(startup.fundingRound.date)}</span>
+            <span>Funded {formatDate(startup.fundingRound.date)}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-success" />
-            <span className="text-xs font-medium">{startup.metrics.buzzScore}</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
+                  <TrendingUp className="h-3 w-3 text-success" />
+                  <span className="text-xs font-medium">{startup.metrics.buzzScore}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Buzz Score: measures market interest based on press coverage, social mentions, and industry signals</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
