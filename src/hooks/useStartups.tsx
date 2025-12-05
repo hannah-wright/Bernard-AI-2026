@@ -85,6 +85,7 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
       name: s.name,
       logo: s.logo || undefined,
       description: s.description,
+      createdAt: s.created_at || undefined,
       eli5: s.eli5,
       website: s.website,
       sector: s.sectors as Sector[],

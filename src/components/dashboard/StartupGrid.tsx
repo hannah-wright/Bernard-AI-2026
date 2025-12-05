@@ -1,4 +1,4 @@
-import { Startup, FilterState } from '@/types/startup';
+import { Startup, FilterState, SortOption } from '@/types/startup';
 import { StartupCard } from './StartupCard';
 import { Button } from '@/components/ui/button';
 import { Lock, Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ interface StartupGridProps {
   startups: Startup[];
   filters: FilterState;
   searchQuery?: string;
+  sortBy?: SortOption;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
@@ -18,6 +19,7 @@ export const StartupGrid = ({
   startups, 
   filters, 
   searchQuery = '',
+  sortBy = 'recently_added',
   hasNextPage,
   isFetchingNextPage,
   onLoadMore 
@@ -186,7 +188,15 @@ export const StartupGrid = ({
 
     return true;
   }).sort((a, b) => {
-    return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
+    if (sortBy === 'recently_added') {
+      // Sort by when the startup was added to the database (created_at)
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bDate - aDate;
+    } else {
+      // Sort by last funding date
+      return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
+    }
   });
 
   // Authenticated users (trial or paid) see all data; unauthenticated see first 6 only
