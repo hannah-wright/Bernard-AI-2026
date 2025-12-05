@@ -33,20 +33,23 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      // If user just signed up and has an invite code, try to redeem it
-      if (inviteCode && !isLogin) {
-        redeemInviteCode();
-      } else {
-        navigate('/');
-      }
+      navigate('/');
     }
   }, [user]);
 
-  const redeemInviteCode = async () => {
-    if (!inviteCode || isRedeemingCode) return;
+  // Redeem invite code immediately after signup (before email confirmation)
+  const redeemInviteCodeAfterSignup = async () => {
+    if (!inviteCode) return;
     
     setIsRedeemingCode(true);
     try {
+      // Get current session to make authenticated request
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.log('No session available for invite redemption');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('redeem-invite', {
         body: { code: inviteCode },
       });
@@ -68,7 +71,6 @@ const Auth = () => {
       toast({ title, description, variant: 'destructive' });
     } finally {
       setIsRedeemingCode(false);
-      navigate('/');
     }
   };
 
@@ -230,6 +232,8 @@ const Auth = () => {
           const { title, description } = getSignupErrorMessage(error);
           toast({ title, description, variant: 'destructive' });
         } else {
+          // Immediately redeem invite code after successful signup
+          await redeemInviteCodeAfterSignup();
           setShowEmailConfirmation(true);
         }
       }

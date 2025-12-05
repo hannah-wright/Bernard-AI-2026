@@ -2,6 +2,7 @@ import { Startup, FilterState } from '@/types/startup';
 import { StartupCard } from './StartupCard';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StartupGridProps {
   startups: Startup[];
@@ -9,6 +10,8 @@ interface StartupGridProps {
 }
 
 export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
+  const { user } = useAuth();
+  
   // Filter startups based on current filters
   const filteredStartups = startups.filter((startup) => {
     // Date range filter
@@ -53,7 +56,8 @@ export const StartupGrid = ({ startups, filters }: StartupGridProps) => {
     return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
   });
 
-  const blurStartIndex = 6; // Show first 6 startups, blur the rest
+  // Authenticated users (trial or paid) see all data; unauthenticated see first 6 only
+  const blurStartIndex = user ? Infinity : 6;
 
   return (
     <div className="flex-1">
