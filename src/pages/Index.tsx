@@ -113,9 +113,13 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date_added');
 
-  // Auto-load all pages when user is searching or filtering by Bootstrapped
-  // This ensures search and Bootstrapped filter work across all data, not just loaded pages
-  const needsFullData = searchQuery.trim().length > 0 || filters.roundTypes.includes('Bootstrapped');
+  // Auto-load all pages when filters are active that need complete data
+  // This ensures filtering works across all data, not just loaded pages
+  const needsFullData = 
+    searchQuery.trim().length > 0 || 
+    filters.roundTypes.includes('Bootstrapped') ||
+    (filters.dateRange !== '9999') || // Not "All time" for Last Round Date
+    (filters.dateAddedRange && filters.dateAddedRange !== 'all'); // Date Added filter active
   
   useEffect(() => {
     if (needsFullData && hasNextPage && !isFetchingNextPage) {
