@@ -12,7 +12,8 @@ import {
   Building2,
   GraduationCap,
   Briefcase,
-  DollarSign
+  DollarSign,
+  Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +97,28 @@ export const VCIntelligencePanel = ({ startup }: VCIntelligencePanelProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Prior Exit Badge */}
+      {startup.hasPriorExit && (
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Trophy className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-medium text-emerald-500">Founder with Successful Exit</span>
+          </div>
+          {startup.founderBackground?.founders?.some(f => f.prior_startups?.some(ps => ps.outcome === 'Acquired' || ps.outcome === 'IPO')) && (
+            <div className="flex flex-wrap gap-1">
+              {startup.founderBackground.founders
+                .flatMap(f => f.prior_startups?.filter(ps => ps.outcome === 'Acquired' || ps.outcome === 'IPO') || [])
+                .slice(0, 3)
+                .map((exit, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs border-emerald-500/30 text-emerald-600">
+                    {exit.name} ({exit.outcome})
+                  </Badge>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Scores */}
       {hasScores && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

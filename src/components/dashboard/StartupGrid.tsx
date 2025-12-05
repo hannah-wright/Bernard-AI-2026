@@ -30,10 +30,9 @@ export const StartupGrid = ({
     cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
     if (fundingDate < cutoffDate) return false;
 
-    // Funding amount filter
-    const amountInMillions = startup.fundingRound.amount / 1000000;
-    if (filters.fundingMin !== undefined && amountInMillions < filters.fundingMin) return false;
-    if (filters.fundingMax !== undefined && amountInMillions > filters.fundingMax) return false;
+    // Current round size filter (fundingMin/Max)
+    if (filters.fundingMin !== undefined && startup.fundingRound.amount < filters.fundingMin) return false;
+    if (filters.fundingMax !== undefined && startup.fundingRound.amount > filters.fundingMax) return false;
 
     // Round type filter
     if (filters.roundTypes.length > 0 && !filters.roundTypes.includes(startup.fundingRound.type)) {
@@ -48,7 +47,7 @@ export const StartupGrid = ({
       return false;
     }
 
-    // Location filter
+    // Location filter (legacy)
     if (filters.location && filters.location !== 'any') {
       const locationMap: Record<string, string[]> = {
         usa: ['USA', 'United States'],
@@ -58,6 +57,89 @@ export const StartupGrid = ({
       };
       const validCountries = locationMap[filters.location] || [];
       if (!validCountries.includes(startup.location.country)) return false;
+    }
+
+    // HQ Region filter
+    if (filters.regions.length > 0 && startup.region && !filters.regions.includes(startup.region)) {
+      return false;
+    }
+
+    // Primary Market filter
+    if (filters.primaryMarkets.length > 0 && startup.primaryMarket && !filters.primaryMarkets.includes(startup.primaryMarket)) {
+      return false;
+    }
+
+    // Business Model filter
+    if (filters.businessModels.length > 0 && startup.businessModel && !filters.businessModels.includes(startup.businessModel)) {
+      return false;
+    }
+
+    // Company Type filter
+    if (filters.companyTypes.length > 0 && startup.companyType && !filters.companyTypes.includes(startup.companyType)) {
+      return false;
+    }
+
+    // Target Customer filter
+    if (filters.targetCustomers.length > 0 && startup.targetCustomer && !filters.targetCustomers.includes(startup.targetCustomer)) {
+      return false;
+    }
+
+    // Founder Type filter
+    if (filters.founderTypes.length > 0 && startup.founderType && !filters.founderTypes.includes(startup.founderType)) {
+      return false;
+    }
+
+    // Serial Founder filter
+    if (filters.isSerialFounder !== undefined && startup.isSerialFounder !== filters.isSerialFounder) {
+      return false;
+    }
+
+    // FAANG Alumni filter
+    if (filters.hasFaangAlumni !== undefined && startup.hasFaangAlumni !== filters.hasFaangAlumni) {
+      return false;
+    }
+
+    // Prior Exit filter
+    if (filters.hasPriorExit !== undefined && startup.hasPriorExit !== filters.hasPriorExit) {
+      return false;
+    }
+
+    // Accelerator filter
+    if (filters.accelerators.length > 0 && startup.accelerator && !filters.accelerators.includes(startup.accelerator)) {
+      return false;
+    }
+
+    // Investor Quality filter
+    if (filters.investorQualities.length > 0 && startup.investorQuality && !filters.investorQualities.includes(startup.investorQuality)) {
+      return false;
+    }
+
+    // Total Raised filter
+    if (filters.totalRaisedMin !== undefined && startup.totalRaised !== undefined && startup.totalRaised < filters.totalRaisedMin) {
+      return false;
+    }
+    if (filters.totalRaisedMax !== undefined && startup.totalRaised !== undefined && startup.totalRaised > filters.totalRaisedMax) {
+      return false;
+    }
+
+    // Runway Band filter
+    if (filters.runwayBands.length > 0 && startup.runwayBand && !filters.runwayBands.includes(startup.runwayBand)) {
+      return false;
+    }
+
+    // Burn Multiple filter
+    if (filters.burnMultipleBands.length > 0 && startup.burnMultipleBand && !filters.burnMultipleBands.includes(startup.burnMultipleBand)) {
+      return false;
+    }
+
+    // Round Status filter
+    if (filters.roundStatuses.length > 0 && startup.roundStatus && !filters.roundStatuses.includes(startup.roundStatus)) {
+      return false;
+    }
+
+    // Has Lead filter
+    if (filters.hasLead !== undefined && startup.hasLead !== filters.hasLead) {
+      return false;
     }
 
     return true;
