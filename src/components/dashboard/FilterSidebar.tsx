@@ -218,9 +218,9 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
             </div>
           </div>
 
-          {/* Sector */}
+          {/* Industry */}
           <div className="space-y-3">
-            <Label className="text-sm text-muted-foreground">Sector</Label>
+            <Label className="text-sm text-muted-foreground">Industry</Label>
             <div className="space-y-2">
               {sectors.map((sector) => (
                 <div key={sector} className="flex items-center space-x-2">

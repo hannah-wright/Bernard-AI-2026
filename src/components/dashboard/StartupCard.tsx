@@ -236,6 +236,18 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
               </div>
             </div>
 
+            {/* Industry */}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Industry</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {startup.sector.map((s) => (
+                  <Badge key={s} variant="outline">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
             {/* ELI5 */}
             <div>
               <h4 className="text-sm font-medium text-muted-foreground mb-2">What they do (ELI5)</h4>
