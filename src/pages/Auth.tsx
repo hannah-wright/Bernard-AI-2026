@@ -58,19 +58,13 @@ const Auth = () => {
           description: data.message,
         });
       } else {
-        toast({
-          title: 'Could not redeem invite code',
-          description: data.error || 'Please contact support.',
-          variant: 'destructive',
-        });
+        const { title, description } = getInviteErrorMessage(data.error || '');
+        toast({ title, description, variant: 'destructive' });
       }
     } catch (err) {
-      console.error('Error redeeming invite code:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to redeem invite code. You can try again from your account settings.',
-        variant: 'destructive',
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const { title, description } = getInviteErrorMessage(errorMessage);
+      toast({ title, description, variant: 'destructive' });
     } finally {
       setIsRedeemingCode(false);
       navigate('/');
@@ -99,6 +93,117 @@ const Auth = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const getLoginErrorMessage = (error: Error): { title: string; description: string } => {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('invalid login credentials')) {
+      return {
+        title: 'Invalid credentials',
+        description: 'The email or password you entered is incorrect. Please try again.',
+      };
+    }
+    if (message.includes('email not confirmed')) {
+      return {
+        title: 'Email not verified',
+        description: 'Please check your inbox and click the confirmation link before signing in.',
+      };
+    }
+    if (message.includes('too many requests') || message.includes('rate limit')) {
+      return {
+        title: 'Too many attempts',
+        description: 'Please wait a few minutes before trying again.',
+      };
+    }
+    if (message.includes('network') || message.includes('fetch')) {
+      return {
+        title: 'Connection error',
+        description: 'Unable to connect. Please check your internet connection and try again.',
+      };
+    }
+    return {
+      title: 'Login failed',
+      description: error.message || 'An unexpected error occurred. Please try again.',
+    };
+  };
+
+  const getSignupErrorMessage = (error: Error): { title: string; description: string } => {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('user already registered') || message.includes('already been registered')) {
+      return {
+        title: 'Account already exists',
+        description: 'An account with this email already exists. Please sign in instead.',
+      };
+    }
+    if (message.includes('password') && message.includes('weak')) {
+      return {
+        title: 'Weak password',
+        description: 'Please choose a stronger password with at least 6 characters.',
+      };
+    }
+    if (message.includes('invalid email') || message.includes('email') && message.includes('invalid')) {
+      return {
+        title: 'Invalid email',
+        description: 'Please enter a valid email address.',
+      };
+    }
+    if (message.includes('too many requests') || message.includes('rate limit')) {
+      return {
+        title: 'Too many attempts',
+        description: 'Please wait a few minutes before trying again.',
+      };
+    }
+    if (message.includes('network') || message.includes('fetch')) {
+      return {
+        title: 'Connection error',
+        description: 'Unable to connect. Please check your internet connection and try again.',
+      };
+    }
+    return {
+      title: 'Sign up failed',
+      description: error.message || 'An unexpected error occurred. Please try again.',
+    };
+  };
+
+  const getInviteErrorMessage = (errorMessage: string): { title: string; description: string } => {
+    const message = errorMessage.toLowerCase();
+    
+    if (message.includes('invalid invite code')) {
+      return {
+        title: 'Invalid invite code',
+        description: 'The invite code you entered is not valid. Please check and try again.',
+      };
+    }
+    if (message.includes('expired')) {
+      return {
+        title: 'Invite code expired',
+        description: 'This invite code has expired. Please contact us for a new code.',
+      };
+    }
+    if (message.includes('maximum uses')) {
+      return {
+        title: 'Invite code limit reached',
+        description: 'This invite code has already been used the maximum number of times.',
+      };
+    }
+    if (message.includes('already redeemed')) {
+      return {
+        title: 'Code already used',
+        description: 'You have already redeemed an invite code on this account.',
+      };
+    }
+    if (message.includes('active subscription')) {
+      return {
+        title: 'Already subscribed',
+        description: 'You already have an active subscription and cannot use an invite code.',
+      };
+    }
+    return {
+      title: 'Could not redeem code',
+      description: errorMessage || 'Please try again or contact support.',
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -110,19 +215,8 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'Login failed',
-              description: 'Invalid email or password. Please try again.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Login failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
+          const { title, description } = getLoginErrorMessage(error);
+          toast({ title, description, variant: 'destructive' });
         } else {
           toast({
             title: 'Welcome back!',
@@ -132,21 +226,9 @@ const Auth = () => {
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: 'Account exists',
-              description: 'An account with this email already exists. Please log in instead.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Sign up failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
+          const { title, description } = getSignupErrorMessage(error);
+          toast({ title, description, variant: 'destructive' });
         } else {
-          // Show email confirmation message
           setShowEmailConfirmation(true);
         }
       }
