@@ -256,12 +256,18 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
         },
       });
 
+      console.log('Reactivate response:', { data, error });
+
+      // Check for invocation error
       if (error) throw error;
+      
+      // Check for error in response body
       if (data?.error) throw new Error(data.error);
       
-      toast.success('Subscription reactivated');
+      // Success
+      toast.success('Subscription reactivated!');
       await refreshSubscription();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error reactivating subscription:', error);
       toast.error('Failed to reactivate subscription');
       await refreshSubscription();
