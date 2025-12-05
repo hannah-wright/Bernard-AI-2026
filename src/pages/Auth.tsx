@@ -24,6 +24,7 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedeemingCode, setIsRedeemingCode] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
@@ -274,17 +275,57 @@ const Auth = () => {
               </p>
             </div>
 
-            <div className="pt-4 space-y-3">
+            <div className="pt-4 space-y-4">
               <p className="text-xs text-muted-foreground">
-                Didn't receive the email? Check your spam folder or try again.
+                Didn't receive the email? Check your spam folder.
               </p>
-              <Button
-                variant="outline"
-                onClick={() => setShowEmailConfirmation(false)}
-                className="text-sm"
-              >
-                Back to sign up
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  variant="default"
+                  onClick={async () => {
+                    setIsResendingEmail(true);
+                    try {
+                      const { error } = await supabase.auth.resend({
+                        type: 'signup',
+                        email: email,
+                      });
+                      if (error) {
+                        toast({
+                          title: 'Could not resend email',
+                          description: error.message.includes('rate') 
+                            ? 'Please wait a few minutes before requesting another email.' 
+                            : error.message,
+                          variant: 'destructive',
+                        });
+                      } else {
+                        toast({
+                          title: 'Email sent!',
+                          description: 'Please check your inbox for the confirmation link.',
+                        });
+                      }
+                    } catch (err) {
+                      toast({
+                        title: 'Error',
+                        description: 'Unable to resend email. Please try again.',
+                        variant: 'destructive',
+                      });
+                    } finally {
+                      setIsResendingEmail(false);
+                    }
+                  }}
+                  disabled={isResendingEmail}
+                  className="text-sm"
+                >
+                  {isResendingEmail ? 'Sending...' : 'Resend confirmation email'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEmailConfirmation(false)}
+                  className="text-sm"
+                >
+                  Back to sign up
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
