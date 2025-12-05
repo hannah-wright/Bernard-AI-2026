@@ -400,6 +400,18 @@ export type Database = {
           is_valid: boolean
         }[]
       }
+      deduct_user_credits: {
+        Args: {
+          action_description?: string
+          amount: number
+          target_user_id: string
+        }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
