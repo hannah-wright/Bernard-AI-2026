@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { locationData, getMetrosForCountries } from '@/data/locationData';
 
 type FundingUnit = 'K' | 'M';
 
@@ -168,7 +170,8 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
       fundingMax: undefined,
       roundTypes: [],
       sectors: [],
-      location: '',
+      countries: [],
+      metros: [],
       regions: [],
       primaryMarkets: [],
       businessModels: [],
@@ -194,7 +197,8 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
     filters.sectors.length > 0 ||
     filters.fundingMin !== undefined ||
     filters.fundingMax !== undefined ||
-    filters.location !== '' ||
+    filters.countries.length > 0 ||
+    filters.metros.length > 0 ||
     filters.regions.length > 0 ||
     filters.primaryMarkets.length > 0 ||
     filters.businessModels.length > 0 ||
@@ -218,7 +222,8 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
     filters.sectors.length,
     filters.fundingMin !== undefined ? 1 : 0,
     filters.fundingMax !== undefined ? 1 : 0,
-    filters.location !== '' ? 1 : 0,
+    filters.countries.length,
+    filters.metros.length,
     filters.regions.length,
     filters.primaryMarkets.length,
     filters.businessModels.length,
@@ -455,23 +460,116 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
         {renderBooleanFilter('Has Lead Investor', 'hasLead', 'has-lead')}
       </FilterSection>
 
-      {/* Location (legacy) */}
-      <FilterSection title="Location">
-        <Select
-          value={filters.location}
-          onValueChange={(value) => onFiltersChange({ ...filters, location: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Any location" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="any">Any location</SelectItem>
-            <SelectItem value="usa">United States</SelectItem>
-            <SelectItem value="uk">United Kingdom</SelectItem>
-            <SelectItem value="eu">Europe</SelectItem>
-            <SelectItem value="asia">Asia</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Location - Country & Metro drill-down */}
+      <FilterSection title="Location" defaultOpen>
+        <div className="space-y-3">
+          {/* Country selector */}
+          <div className="space-y-2">
+            <span className="text-xs text-muted-foreground">Country</span>
+            <div className="max-h-48 overflow-y-auto space-y-2 rounded-md border border-border p-2">
+              {locationData.map((country) => (
+                <div key={country.code} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`country-${country.code}`}
+                    checked={filters.countries.includes(country.code)}
+                    onCheckedChange={(checked) => {
+                      const newCountries = checked 
+                        ? [...filters.countries, country.code]
+                        : filters.countries.filter(c => c !== country.code);
+                      // Clear metros that no longer belong to selected countries
+                      const availableMetros = getMetrosForCountries(newCountries);
+                      const availableMetroIds = availableMetros.map(m => m.id);
+                      const newMetros = filters.metros.filter(m => availableMetroIds.includes(m));
+                      onFiltersChange({ ...filters, countries: newCountries, metros: newMetros });
+                    }}
+                  />
+                  <label
+                    htmlFor={`country-${country.code}`}
+                    className="text-sm leading-none cursor-pointer"
+                  >
+                    {country.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Metro selector - only show when countries are selected */}
+          {filters.countries.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-xs text-muted-foreground">Metro Area (optional)</span>
+              <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border border-border p-2">
+                {filters.countries.map(countryCode => {
+                  const country = locationData.find(c => c.code === countryCode);
+                  if (!country || country.metros.length === 0) return null;
+                  return (
+                    <div key={countryCode} className="space-y-1">
+                      <span className="text-xs font-medium text-muted-foreground px-1">{country.name}</span>
+                      {country.metros.map((metro) => (
+                        <div key={metro.id} className="flex items-center space-x-2 pl-2">
+                          <Checkbox
+                            id={`metro-${metro.id}`}
+                            checked={filters.metros.includes(metro.id)}
+                            onCheckedChange={(checked) => {
+                              const newMetros = checked
+                                ? [...filters.metros, metro.id]
+                                : filters.metros.filter(m => m !== metro.id);
+                              onFiltersChange({ ...filters, metros: newMetros });
+                            }}
+                          />
+                          <label
+                            htmlFor={`metro-${metro.id}`}
+                            className="text-sm leading-none cursor-pointer"
+                          >
+                            {metro.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Location summary */}
+          {(filters.countries.length > 0 || filters.metros.length > 0) && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {filters.countries.map(code => {
+                const country = locationData.find(c => c.code === code);
+                return country ? (
+                  <Badge 
+                    key={code} 
+                    variant="secondary" 
+                    className="text-xs cursor-pointer hover:bg-destructive/20"
+                    onClick={() => {
+                      const newCountries = filters.countries.filter(c => c !== code);
+                      const availableMetros = getMetrosForCountries(newCountries);
+                      const availableMetroIds = availableMetros.map(m => m.id);
+                      const newMetros = filters.metros.filter(m => availableMetroIds.includes(m));
+                      onFiltersChange({ ...filters, countries: newCountries, metros: newMetros });
+                    }}
+                  >
+                    {country.name} ×
+                  </Badge>
+                ) : null;
+              })}
+              {filters.metros.map(metroId => {
+                const metro = getMetrosForCountries(filters.countries).find(m => m.id === metroId);
+                return metro ? (
+                  <Badge 
+                    key={metroId} 
+                    variant="outline" 
+                    className="text-xs cursor-pointer hover:bg-destructive/20"
+                    onClick={() => onFiltersChange({ ...filters, metros: filters.metros.filter(m => m !== metroId) })}
+                  >
+                    {metro.name} ×
+                  </Badge>
+                ) : null;
+              })}
+            </div>
+          )}
+        </div>
       </FilterSection>
     </div>
   );
