@@ -199,8 +199,8 @@ export const StartupGrid = ({
     }
   });
 
-  // Authenticated users (trial or paid) see all data; unauthenticated see first 6 only
-  const blurStartIndex = user ? Infinity : 6;
+  // Authenticated users (trial or paid) see all data; unauthenticated see first 4 only
+  const blurStartIndex = user ? Infinity : 4;
 
   return (
     <div className="flex-1">
