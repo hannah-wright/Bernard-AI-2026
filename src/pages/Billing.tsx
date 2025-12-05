@@ -13,8 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, Loader2, CreditCard, AlertCircle, RefreshCw, History, Coins, TrendingUp, TrendingDown } from 'lucide-react';
+import { Check, Loader2, CreditCard, AlertCircle, RefreshCw, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 
 const CANCELLATION_REASONS = [
@@ -29,7 +28,7 @@ const CANCELLATION_REASONS = [
 const Billing = () => {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const { profile, transactions, fetchTransactions, refreshProfile } = useProfile();
+  const { profile, refreshProfile } = useProfile();
   const {
     subscription,
     loading: billingLoading,
@@ -71,12 +70,6 @@ const Billing = () => {
     }
   }, [searchParams, refreshSubscription, refreshProfile]);
 
-  // Fetch transactions on mount
-  useEffect(() => {
-    if (user) {
-      fetchTransactions();
-    }
-  }, [user, fetchTransactions]);
 
   const handleSubscribe = async (planKey: PlanKey) => {
     setProcessingAction(planKey);
@@ -367,51 +360,6 @@ const Billing = () => {
                 </Card>
               </div>
 
-              {transactions.length > 0 && (
-                <>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Credit History
-                  </h2>
-                  <Card>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {transactions.slice(0, 10).map((tx) => (
-                          <TableRow key={tx.id}>
-                            <TableCell className="text-muted-foreground">
-                              {new Date(tx.created_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {tx.type.replace(/_/g, ' ')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{tx.description || '-'}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              <span className={tx.amount >= 0 ? 'text-success' : 'text-destructive'}>
-                                {tx.amount >= 0 ? (
-                                  <TrendingUp className="h-3 w-3 inline mr-1" />
-                                ) : (
-                                  <TrendingDown className="h-3 w-3 inline mr-1" />
-                                )}
-                                {tx.amount >= 0 ? '+' : ''}{tx.amount}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Card>
-                </>
-              )}
             </>
           )}
         </div>
