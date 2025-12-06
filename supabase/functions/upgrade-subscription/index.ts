@@ -141,6 +141,16 @@ serve(async (req) => {
       });
     }
 
+    // Safely get current period end
+    let currentPeriodEnd: string | null = null;
+    if (updatedSubscription.current_period_end) {
+      try {
+        currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000).toISOString();
+      } catch (e) {
+        logStep("Warning: Could not parse current_period_end", { value: updatedSubscription.current_period_end });
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       subscription: {
@@ -148,7 +158,7 @@ serve(async (req) => {
         status: updatedSubscription.status,
         productId: newProductId,
         priceId: newPriceId,
-        currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
+        currentPeriodEnd,
       },
       creditsAdded: newCredits - currentCredits,
     }), {
