@@ -1,3 +1,12 @@
+/**
+ * Startup Enrichment Edge Function
+ * 
+ * Uses Google Gemini API for AI-powered VC intelligence enrichment.
+ * Gemini offers a generous free tier: 15 RPM, 1M tokens/day for Flash model.
+ * 
+ * Required secret: GEMINI_API_KEY (get from https://aistudio.google.com/app/apikey)
+ */
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -55,26 +64,25 @@ interface VCIntelligence {
   has_lead: boolean
 }
 
-async function enrichWithAI(startup: StartupData, apiKey: string, retryCount = 0): Promise<VCIntelligence> {
-  const prompt = `You are a VC analyst. Analyze this startup and provide structured intelligence data.
+const ENRICHMENT_PROMPT = `You are a VC analyst. Analyze this startup and provide structured intelligence data.
 
 STARTUP INFO:
-- Name: ${startup.name}
-- Description: ${startup.description}
-- ELI5: ${startup.eli5}
-- Website: ${startup.website}
-- Industries: ${startup.sectors.join(', ')}
-- Location: ${startup.city}, ${startup.country}
-- Est. Revenue: ${startup.estimated_revenue || 'Unknown'}
-- Est. Size: ${startup.estimated_size || 'Unknown'}
-- Buzz Score: ${startup.buzz_score}/100
+- Name: {name}
+- Description: {description}
+- ELI5: {eli5}
+- Website: {website}
+- Industries: {sectors}
+- Location: {city}, {country}
+- Est. Revenue: {estimated_revenue}
+- Est. Size: {estimated_size}
+- Buzz Score: {buzz_score}/100
 
 Based on this information and your knowledge, generate realistic VC intelligence data. Make educated estimates based on the company stage, industry, and available information.
 
-Return a JSON object with these exact fields:
+Return ONLY a valid JSON object (no markdown, no explanation) with these exact fields:
 {
   "founder_background": {
-    "founders": [{"name": "Founder Name", "years_in_industry": 8, "notable_employers": ["Company1", "Company2"], "education": ["University"], "prior_startups": []}],
+    "founders": [{"name": "Founder Name", "years_in_industry": 8, "notable_employers": ["Company1"], "education": ["University"], "prior_startups": []}],
     "advisor_network": []
   },
   "team_composition": {
@@ -105,15 +113,13 @@ Return a JSON object with these exact fields:
     "stage": "GA",
     "deployment_model": "SaaS",
     "ai_native": false,
-    "tech_stack": ["React", "Node.js", "AWS"],
-    "certifications": []
+    "tech_stack": ["React", "Node.js", "AWS"]
   },
   "defensibility_signals": {
     "proprietary_data": false,
     "network_effects": false,
     "switching_cost_level": "Medium",
-    "patents_filed": 0,
-    "patents_granted": 0
+    "patents_filed": 0
   },
   "market_context": {
     "tam_usd": 5000000000,
@@ -159,80 +165,97 @@ Return a JSON object with these exact fields:
   "has_lead": true
 }
 
-IMPORTANT FIELD VALUES:
-- region: One of "US", "EU", "LATAM", "APAC", "MEA", "Remote/Global"
-- primary_market: One of "US", "EU", "LATAM", "APAC", "MEA", "Remote/Global"
-- business_model: One of "B2B", "B2C", "B2B2C"
-- company_type: One of "SaaS", "Marketplace", "Fintech", "Hardware", "Services", "Other"
-- target_customer: One of "SMB", "Mid-market", "Enterprise", "Consumer", "All"
-- founder_type: One of "Solo", "Team"
-- accelerator: One of "YC", "Techstars", "a16z", "500 Startups", "Other Tier-1", null
-- investor_quality: One of "Unicorn-backers", "Multi-exit fund", "Established fund", "Angel/Seed-focus"
-- runway_band: One of "<6 months", "6-12 months", "12-18 months", "18+ months"
-- burn_multiple_band: One of "<1x", "1-2x", "2-3x", ">3x"
-- round_status: One of "Raising", "Recently Closed", "Exploring"
+FIELD CONSTRAINTS:
+- region/primary_market: "US", "EU", "LATAM", "APAC", "MEA", or "Remote/Global"
+- business_model: "B2B", "B2C", or "B2B2C"
+- company_type: "SaaS", "Marketplace", "Fintech", "Hardware", "Services", or "Other"
+- target_customer: "SMB", "Mid-market", "Enterprise", "Consumer", or "All"
+- founder_type: "Solo" or "Team"
+- accelerator: "YC", "Techstars", "a16z", "500 Startups", "Other Tier-1", or null
+- investor_quality: "Unicorn-backers", "Multi-exit fund", "Established fund", or "Angel/Seed-focus"
+- runway_band: "<6 months", "6-12 months", "12-18 months", or "18+ months"
+- burn_multiple_band: "<1x", "1-2x", "2-3x", or ">3x"
+- round_status: "Raising", "Recently Closed", or "Exploring"
+- product_info.stage: "MVP", "Beta", "GA", or "Multi-product"
 
-Be realistic with scores based on the company stage. Early-stage companies should have lower scores. Consider industry benchmarks.
-ONLY return valid JSON, no other text.`
+Be realistic - early-stage startups should have lower scores.`
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: 'You are a VC analyst that provides structured startup intelligence data in JSON format only.' },
-        { role: 'user', content: prompt }
-      ],
-    }),
-  })
+async function enrichWithGemini(startup: StartupData, apiKey: string, retryCount = 0): Promise<VCIntelligence> {
+  const prompt = ENRICHMENT_PROMPT
+    .replace('{name}', startup.name)
+    .replace('{description}', startup.description)
+    .replace('{eli5}', startup.eli5)
+    .replace('{website}', startup.website)
+    .replace('{sectors}', startup.sectors.join(', '))
+    .replace('{city}', startup.city)
+    .replace('{country}', startup.country)
+    .replace('{estimated_revenue}', startup.estimated_revenue || 'Unknown')
+    .replace('{estimated_size}', startup.estimated_size || 'Unknown')
+    .replace('{buzz_score}', String(startup.buzz_score))
+
+  // Use Gemini 1.5 Flash - fastest and most cost-effective
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+        },
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        ],
+      }),
+    }
+  )
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('AI API error:', response.status, errorText)
-    
-    // Retry on rate limit with exponential backoff
-    if (response.status === 429 && retryCount < 3) {
-      const delay = Math.pow(2, retryCount) * 2000 // 2s, 4s, 8s
-      console.log(`Rate limited, retrying in ${delay}ms...`)
+    console.error('Gemini API error:', response.status, errorText)
+
+    // Retry on rate limit (429) or server error (5xx) with exponential backoff
+    if ((response.status === 429 || response.status >= 500) && retryCount < 3) {
+      const delay = Math.pow(2, retryCount) * 1000 // 1s, 2s, 4s
+      console.log(`Rate limited/error, retrying in ${delay}ms...`)
       await new Promise(resolve => setTimeout(resolve, delay))
-      return enrichWithAI(startup, apiKey, retryCount + 1)
+      return enrichWithGemini(startup, apiKey, retryCount + 1)
     }
-    
-    if (response.status === 402) {
-      throw new Error('AI credits exhausted')
-    }
-    throw new Error(`AI enrichment failed: ${response.status}`)
+
+    throw new Error(`Gemini API failed: ${response.status} - ${errorText}`)
   }
 
   const data = await response.json()
-  const content = data.choices?.[0]?.message?.content
-
+  
+  // Extract text from Gemini response
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!content) {
-    throw new Error('No content in AI response')
+    console.error('No content in Gemini response:', JSON.stringify(data))
+    throw new Error('No content in Gemini response')
   }
 
-  // Parse JSON from response (handle markdown code blocks)
+  // Parse JSON - Gemini with responseMimeType should return clean JSON
   let jsonStr = content.trim()
-  if (jsonStr.startsWith('```json')) {
-    jsonStr = jsonStr.slice(7)
-  }
-  if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.slice(3)
-  }
-  if (jsonStr.endsWith('```')) {
-    jsonStr = jsonStr.slice(0, -3)
-  }
+  
+  // Handle potential markdown code blocks (fallback)
+  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7)
+  if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3)
+  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3)
   jsonStr = jsonStr.trim()
 
   try {
     return JSON.parse(jsonStr)
   } catch (parseError) {
-    console.error('Failed to parse AI response:', jsonStr)
-    throw new Error('Invalid JSON in AI response')
+    console.error('Failed to parse Gemini response:', jsonStr.slice(0, 500))
+    throw new Error('Invalid JSON in Gemini response')
   }
 }
 
@@ -242,13 +265,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
-    if (!lovableApiKey) {
-      console.error('LOVABLE_API_KEY not configured')
-      return new Response(
-        JSON.stringify({ error: 'AI API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Try Gemini first, fall back to Lovable if configured
+    let apiKey = Deno.env.get('GEMINI_API_KEY')
+    let useGemini = true
+    
+    if (!apiKey) {
+      // Fallback to Lovable API if Gemini not configured
+      apiKey = Deno.env.get('LOVABLE_API_KEY')
+      useGemini = false
+      
+      if (!apiKey) {
+        console.error('No AI API key configured. Set GEMINI_API_KEY (recommended) or LOVABLE_API_KEY')
+        return new Response(
+          JSON.stringify({ 
+            error: 'AI API key not configured',
+            help: 'Set GEMINI_API_KEY in Supabase secrets. Get a free key at https://aistudio.google.com/app/apikey'
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -273,14 +308,12 @@ Deno.serve(async (req) => {
       let query = supabase
         .from('startups')
         .select('id, name, description, eli5, website, sectors, city, country, estimated_revenue, estimated_size, buzz_score')
-      
-      // If not forcing re-enrich, only get startups without enrichment data
+
       if (!forceReenrich) {
         query = query.or('unicorn_probability.is.null,team_quality_score.is.null')
       }
-      
-      const { data: startups, error } = await query.limit(Math.min(batchSize, 100)) // Max 100 per batch
 
+      const { data: startups, error } = await query.limit(Math.min(batchSize, 100))
       if (error) throw error
       startupsToEnrich = startups || []
     } else if (startupId) {
@@ -302,7 +335,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log(`Enriching ${startupsToEnrich.length} startups...`)
+    console.log(`Enriching ${startupsToEnrich.length} startups using ${useGemini ? 'Gemini' : 'Lovable'} API...`)
 
     let enriched = 0
     let errors = 0
@@ -311,7 +344,8 @@ Deno.serve(async (req) => {
     for (const startup of startupsToEnrich) {
       try {
         console.log(`Enriching ${startup.name}...`)
-        const intelligence = await enrichWithAI(startup, lovableApiKey)
+        
+        const intelligence = await enrichWithGemini(startup, apiKey)
 
         const { error: updateError } = await supabase
           .from('startups')
@@ -358,29 +392,37 @@ Deno.serve(async (req) => {
           errors++
           failedStartups.push(startup.name)
         } else {
-          console.log(`Successfully enriched ${startup.name}`)
+          console.log(`✓ Successfully enriched ${startup.name}`)
           enriched++
         }
 
-        // Shorter delay to process faster
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Small delay between requests to respect rate limits
+        // Gemini free tier: 15 RPM = 1 request per 4 seconds
+        await new Promise(resolve => setTimeout(resolve, 300))
       } catch (err) {
         console.error(`Error enriching ${startup.name}:`, err)
         errors++
         failedStartups.push(startup.name)
+        
+        // If we hit quota limits, stop processing
+        if (err instanceof Error && err.message.includes('429')) {
+          console.log('Rate limit hit, stopping batch...')
+          break
+        }
       }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Enrichment complete`,
+        provider: useGemini ? 'Google Gemini' : 'Lovable AI',
         stats: {
           total: startupsToEnrich.length,
           enriched,
           errors,
-          failedStartups: failedStartups.length > 0 ? failedStartups : undefined
-        }
+          failedStartups: failedStartups.length > 0 ? failedStartups : undefined,
+        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

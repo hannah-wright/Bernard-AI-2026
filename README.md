@@ -8,7 +8,7 @@ A VC-focused startup intelligence SaaS platform built with React, TypeScript, an
 - **UI Components**: shadcn/ui, Radix UI primitives
 - **Backend**: Supabase (PostgreSQL, Edge Functions, Auth)
 - **Payments**: Stripe (subscriptions, one-time purchases)
-- **Data Pipeline**: Zyte API (web scraping), Lovable AI (enrichment)
+- **Data Pipeline**: Zyte API (web scraping), Google Gemini AI (enrichment)
 
 ## Project Structure
 
@@ -98,8 +98,16 @@ SUPABASE_SERVICE_ROLE_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 ZYTE_API_KEY
-LOVABLE_API_KEY
+GEMINI_API_KEY          # Get free at https://aistudio.google.com/app/apikey
 ```
+
+### AI Enrichment (Free Option)
+The startup enrichment uses **Google Gemini API** which offers a generous free tier:
+- **Free**: 15 requests/minute, 1 million tokens/day
+- **Fast**: Gemini 1.5 Flash is optimized for speed
+- **Reliable**: Google's infrastructure
+
+Get your free API key at: https://aistudio.google.com/app/apikey
 
 ## Development
 
@@ -129,9 +137,10 @@ Edge functions are deployed automatically when code is pushed. Functions are loc
 
 ### Enrichment
 1. `enrich-startup` function processes new/updated startups
-2. Uses Lovable AI for VC intelligence analysis
+2. Uses **Google Gemini 1.5 Flash** for VC intelligence analysis (free tier available)
 3. Generates: team scores, unicorn probability, PMF score
 4. Populates: founder background, traction, unit economics
+5. Fallback: Can use Lovable AI if LOVABLE_API_KEY is set instead
 
 ## Billing Integration
 

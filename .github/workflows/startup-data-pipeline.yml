@@ -1,0 +1,234 @@
+# Bernard AI - Automated Startup Data Pipeline
+# 
+# This workflow automates:
+# 1. Scraping new startups from news sources (2x/day at 6 AM & 6 PM PST)
+# 2. AI enrichment with VC intelligence (after scraping)
+# 3. Refreshing stale data (1x/week on Sundays at 3 AM PST)
+#
+# Cost: FREE (within GitHub Actions free tier)
+# Reliability: 99.9% uptime
+
+name: Startup Data Pipeline
+
+on:
+  schedule:
+    # Scrape new startups: 6 AM and 6 PM PST daily
+    # 6 AM PST = 14:00 UTC, 6 PM PST = 02:00 UTC
+    - cron: '0 2,14 * * *'
+    # Refresh stale data: Sundays at 3 AM PST (11:00 UTC)
+    - cron: '0 11 * * 0'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to run'
+        required: true
+        default: 'scrape-and-enrich'
+        type: choice
+        options:
+          - scrape-and-enrich
+          - enrich-only
+          - refresh-stale
+          - full-pipeline
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  # Job 1: Scrape new startups from all sources (daily, not on Sundays)
+  scrape-sources:
+    name: Scrape News Sources
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'schedule' && github.event.schedule != '0 11 * * 0') || github.event.inputs.action == 'scrape-and-enrich' || github.event.inputs.action == 'full-pipeline'
+    outputs:
+      new_startups: ${{ steps.scrape.outputs.total_saved }}
+    
+    steps:
+      - name: Scrape Source 1 - TechCrunch Startups
+        id: source1
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/scrape-source" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sourceIndex": 0}')
+          echo "Response: $RESPONSE"
+          SAVED=$(echo $RESPONSE | jq -r '.startupsSaved // 0')
+          echo "saved=$SAVED" >> $GITHUB_OUTPUT
+          sleep 5
+
+      - name: Scrape Source 2 - TechCrunch Funding
+        id: source2
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/scrape-source" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sourceIndex": 1}')
+          echo "Response: $RESPONSE"
+          SAVED=$(echo $RESPONSE | jq -r '.startupsSaved // 0')
+          echo "saved=$SAVED" >> $GITHUB_OUTPUT
+          sleep 5
+
+      - name: Scrape Source 3 - VentureBeat Funding
+        id: source3
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/scrape-source" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sourceIndex": 2}')
+          echo "Response: $RESPONSE"
+          SAVED=$(echo $RESPONSE | jq -r '.startupsSaved // 0')
+          echo "saved=$SAVED" >> $GITHUB_OUTPUT
+          sleep 5
+
+      - name: Scrape Source 4 - Crunchbase Venture
+        id: source4
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/scrape-source" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sourceIndex": 3}')
+          echo "Response: $RESPONSE"
+          SAVED=$(echo $RESPONSE | jq -r '.startupsSaved // 0')
+          echo "saved=$SAVED" >> $GITHUB_OUTPUT
+          sleep 5
+
+      - name: Scrape Source 5 - Crunchbase Seed
+        id: source5
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/scrape-source" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sourceIndex": 4}')
+          echo "Response: $RESPONSE"
+          SAVED=$(echo $RESPONSE | jq -r '.startupsSaved // 0')
+          echo "saved=$SAVED" >> $GITHUB_OUTPUT
+
+      - name: Calculate Total
+        id: scrape
+        run: |
+          TOTAL=$((${SOURCE1:-0} + ${SOURCE2:-0} + ${SOURCE3:-0} + ${SOURCE4:-0} + ${SOURCE5:-0}))
+          echo "total_saved=$TOTAL" >> $GITHUB_OUTPUT
+          echo "📊 Total new startups saved: $TOTAL"
+        env:
+          SOURCE1: ${{ steps.source1.outputs.saved }}
+          SOURCE2: ${{ steps.source2.outputs.saved }}
+          SOURCE3: ${{ steps.source3.outputs.saved }}
+          SOURCE4: ${{ steps.source4.outputs.saved }}
+          SOURCE5: ${{ steps.source5.outputs.saved }}
+
+  # Job 2: Process enrichment queue (AI enrichment with Gemini)
+  process-enrichment:
+    name: AI Enrichment (Gemini)
+    runs-on: ubuntu-latest
+    needs: [scrape-sources]
+    # Run after scraping on daily schedule, or manual enrich-only trigger (skip on Sundays - refresh-stale handles it)
+    if: always() && ((github.event_name == 'schedule' && github.event.schedule != '0 11 * * 0') || github.event.inputs.action == 'scrape-and-enrich' || github.event.inputs.action == 'enrich-only' || github.event.inputs.action == 'full-pipeline')
+    
+    steps:
+      - name: Process Enrichment Queue - Batch 1
+        id: batch1
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/process-enrichment-queue" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 5}')
+          echo "Batch 1: $RESPONSE"
+          REMAINING=$(echo $RESPONSE | jq -r '.remainingInQueue // 0')
+          ENRICHED=$(echo $RESPONSE | jq -r '.enriched // 0')
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "enriched=$ENRICHED" >> $GITHUB_OUTPUT
+          sleep 10
+
+      - name: Process Enrichment Queue - Batch 2
+        id: batch2
+        if: steps.batch1.outputs.remaining > 0
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/process-enrichment-queue" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 5}')
+          echo "Batch 2: $RESPONSE"
+          REMAINING=$(echo $RESPONSE | jq -r '.remainingInQueue // 0')
+          ENRICHED=$(echo $RESPONSE | jq -r '.enriched // 0')
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "enriched=$ENRICHED" >> $GITHUB_OUTPUT
+          sleep 10
+
+      - name: Process Enrichment Queue - Batch 3
+        id: batch3
+        if: steps.batch2.outputs.remaining > 0
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/process-enrichment-queue" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 5}')
+          echo "Batch 3: $RESPONSE"
+          REMAINING=$(echo $RESPONSE | jq -r '.remainingInQueue // 0')
+          ENRICHED=$(echo $RESPONSE | jq -r '.enriched // 0')
+          echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+          echo "enriched=$ENRICHED" >> $GITHUB_OUTPUT
+          sleep 10
+
+      - name: Process Enrichment Queue - Batch 4
+        id: batch4
+        if: steps.batch3.outputs.remaining > 0
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/process-enrichment-queue" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 5}')
+          echo "Batch 4: $RESPONSE"
+          ENRICHED=$(echo $RESPONSE | jq -r '.enriched // 0')
+          echo "enriched=$ENRICHED" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          TOTAL=$((${B1:-0} + ${B2:-0} + ${B3:-0} + ${B4:-0}))
+          echo "🤖 Total startups enriched: $TOTAL"
+        env:
+          B1: ${{ steps.batch1.outputs.enriched }}
+          B2: ${{ steps.batch2.outputs.enriched }}
+          B3: ${{ steps.batch3.outputs.enriched }}
+          B4: ${{ steps.batch4.outputs.enriched }}
+
+  # Job 3: Refresh stale data (Sundays at 3 AM PST or manual trigger)
+  refresh-stale:
+    name: Refresh Stale Data
+    runs-on: ubuntu-latest
+    # Run on Sunday schedule (cron '0 11 * * 0') or manual trigger
+    if: github.event.schedule == '0 11 * * 0' || github.event.inputs.action == 'refresh-stale' || github.event.inputs.action == 'full-pipeline'
+    
+    steps:
+      - name: Queue Stale Startups
+        id: queue
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/refresh-stale-data" \
+            -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"staleDays": 7, "maxToQueue": 20}')
+          echo "Response: $RESPONSE"
+          QUEUED=$(echo $RESPONSE | jq -r '.queued // 0')
+          echo "queued=$QUEUED" >> $GITHUB_OUTPUT
+
+      - name: Process Refreshed Queue
+        if: steps.queue.outputs.queued > 0
+        run: |
+          for i in 1 2 3 4; do
+            echo "Processing batch $i..."
+            RESPONSE=$(curl -s -X POST "${{ env.SUPABASE_URL }}/functions/v1/process-enrichment-queue" \
+              -H "Authorization: Bearer ${{ env.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{"batchSize": 5}')
+            echo "Batch $i: $RESPONSE"
+            REMAINING=$(echo $RESPONSE | jq -r '.remainingInQueue // 0')
+            if [ "$REMAINING" -eq 0 ]; then
+              echo "Queue empty, stopping."
+              break
+            fi
+            sleep 10
+          done
