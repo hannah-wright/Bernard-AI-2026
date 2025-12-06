@@ -48,12 +48,16 @@ export const useCredits = () => {
   }, [percentRemaining, credits, user, monthlyCredits]);
 
   // Show critical toast separately - only once per session
+  // Use a stable ref check and setTimeout to batch multiple rapid state changes
   useEffect(() => {
-    if (!user || credits === 0) return;
+    if (!user || credits === 0 || credits > CRITICAL_CREDIT_THRESHOLD) return;
     if (hasShownCriticalToast.current) return;
     
-    if (credits <= CRITICAL_CREDIT_THRESHOLD && credits > 0) {
-      hasShownCriticalToast.current = true;
+    // Set ref immediately to prevent any additional calls
+    hasShownCriticalToast.current = true;
+    
+    // Use setTimeout to ensure we're past React's batching/strict mode double-invoke
+    const timeoutId = setTimeout(() => {
       toast.warning(
         `Critical: Only ${credits} credits remaining!`,
         {
@@ -65,7 +69,9 @@ export const useCredits = () => {
           duration: 10000,
         }
       );
-    }
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [credits, user]);
 
   // Mark critical toast as shown if deduction results in critical level
@@ -123,20 +129,11 @@ export const useCredits = () => {
         // Refresh profile to update credit display
         await refreshProfile();
         
-        // Check for low credits after deduction - only show if not already shown this session
+        // Mark critical as shown if we're now at critical level
+        // The useEffect will handle showing the toast
         const remaining = data.creditsRemaining;
-        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0 && !hasShownCriticalToast.current) {
+        if (remaining <= CRITICAL_CREDIT_THRESHOLD && remaining > 0) {
           hasShownCriticalToast.current = true;
-          toast.warning(
-            `Only ${remaining} credits left!`,
-            {
-              description: 'Running low on credits.',
-              action: {
-                label: 'Get More',
-                onClick: () => window.location.href = '/billing',
-              },
-            }
-          );
         }
         
         return { success: true, creditsRemaining: remaining };
