@@ -20,8 +20,11 @@ export const Header = () => {
   const { profile } = useProfile();
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     await signOut();
+    navigate('/auth');
   };
 
   const planName = subscription.plan 
