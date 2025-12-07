@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 
 export const useCredits = () => {
   const { user } = useAuth();
-  const { profile, refreshProfile } = useProfile();
+  const { profile, updateCredits } = useProfile();
   const { subscription } = useBilling();
   
   // Refs to track toast/modal state within session
@@ -133,11 +133,11 @@ export const useCredits = () => {
     }
 
     if (data.success) {
-      // Refresh profile to update credit display
-      await refreshProfile();
+      // Fast update: use returned credits directly instead of full profile refetch
+      const remaining = data.creditsRemaining ?? 0;
+      updateCredits(remaining);
       
       // Mark critical as shown if we're now at critical level
-      const remaining = data.creditsRemaining ?? 0;
       if (remaining <= CREDIT_THRESHOLDS.criticalThreshold && remaining > 0) {
         hasShownCriticalToast.current = true;
       }
@@ -157,7 +157,7 @@ export const useCredits = () => {
     }
 
     return { success: false };
-  }, [user, credits, refreshProfile]);
+  }, [user, credits, updateCredits]);
 
   // -------------------------------------------------------------------------
   // Return API

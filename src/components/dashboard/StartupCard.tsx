@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Building2, Coins, Lock } from 'lucide-react';
+import { Heart, ExternalLink, MapPin, Calendar, TrendingUp, Building2, Coins, Lock, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceBadge } from './ConfidenceBadge';
@@ -38,6 +38,8 @@ import { toast } from 'sonner';
 
 // Import modular tab components
 import { MarketTab, TeamTab, PredictiveTab } from './startup-details';
+import { AddToListButton } from './AddToListButton';
+import { VotingPanel, DealScoreBadge } from './VotingPanel';
 
 interface StartupCardProps {
   startup: Startup;
@@ -49,7 +51,6 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [hasViewedDetails, setHasViewedDetails] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   
   const { user } = useAuth();
   const { deductCredits, credits, getCost } = useCredits();
@@ -97,17 +98,21 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
       return;
     }
 
-    setIsLoading(true);
-    const result = await deductCredits('view_startup_details', {
+    // Optimistic update: open dialog immediately for better UX
+    setHasViewedDetails(true);
+    setIsDialogOpen(true);
+
+    // Deduct credits in background - don't block the UI
+    deductCredits('view_startup_details', {
       description: `Viewed ${startup.name} details`,
       resourceId: startup.id,
+    }).then((result) => {
+      if (!result.success) {
+        // Rollback on failure
+        setHasViewedDetails(false);
+        setIsDialogOpen(false);
+      }
     });
-    setIsLoading(false);
-
-    if (result.success) {
-      setHasViewedDetails(true);
-      setIsDialogOpen(true);
-    }
   };
 
   // -------------------------------------------------------------------------
@@ -119,10 +124,7 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
       {/* Card */}
       <div 
         onClick={handleCardClick}
-        className={cn(
-          "group relative rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:shadow-sm cursor-pointer",
-          isLoading && "opacity-50 pointer-events-none"
-        )}
+        className="group relative rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:shadow-sm cursor-pointer"
       >
 
         {/* Header */}
@@ -143,17 +145,27 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
               </div>
             </div>
           </div>
-          <button
-            onClick={handleFavoriteClick}
-            className="p-1.5 rounded-md hover:bg-secondary transition-colors"
-          >
-            <Heart
-              className={cn(
-                'h-4 w-4 transition-colors',
-                isFavorite ? 'fill-foreground text-foreground' : 'text-muted-foreground'
-              )}
-            />
-          </button>
+          <div className="flex items-center gap-1">
+            {user && (
+              <AddToListButton 
+                startupId={startup.id} 
+                startupName={startup.name}
+                variant="icon"
+                size="sm"
+              />
+            )}
+            <button
+              onClick={handleFavoriteClick}
+              className="p-1.5 rounded-md hover:bg-secondary transition-colors"
+            >
+              <Heart
+                className={cn(
+                  'h-4 w-4 transition-colors',
+                  isFavorite ? 'fill-foreground text-foreground' : 'text-muted-foreground'
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Funding Info */}
@@ -194,19 +206,26 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
               <span>Self-funded</span>
             </div>
           )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 cursor-help">
-                  <TrendingUp className="h-3 w-3 text-success" />
-                  <span className="text-xs font-medium">{startup.metrics.buzzScore}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Buzz Score: measures market interest based on press coverage, social mentions, and industry signals</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-3">
+            {/* Deal Score */}
+            {user && (
+              <DealScoreBadge startupId={startup.id} />
+            )}
+            {/* Buzz Score */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-help">
+                    <TrendingUp className="h-3 w-3 text-success" />
+                    <span className="text-xs font-medium">{startup.metrics.buzzScore}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Buzz Score: measures market interest based on press coverage, social mentions, and industry signals</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
 
@@ -252,6 +271,13 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
               <PredictiveTab startup={startup} />
             </TabsContent>
           </Tabs>
+
+          {/* Partner Voting / Deal Score */}
+          {user && (
+            <div className="mt-4">
+              <VotingPanel startupId={startup.id} startupName={startup.name} />
+            </div>
+          )}
 
           {/* Actions - Always visible */}
           <div className="flex flex-col gap-3 pt-4 border-t border-border mt-4">

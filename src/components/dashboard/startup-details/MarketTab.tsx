@@ -2,18 +2,138 @@
  * Market Tab Content for Startup Detail Dialog
  */
 
-import { Shield } from 'lucide-react';
+import { Shield, DollarSign, Users, Calendar, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/formatters';
 import { methodologyText, DataLabel } from '../DataMethodologyTooltips';
 import { SectionTitle } from './shared';
 import type { StartupDetailTabProps } from './types';
+import { useState } from 'react';
 
 export const MarketTab = ({ startup }: StartupDetailTabProps) => {
   const hasMarketData = startup.marketContext || startup.competitiveLandscape || startup.tractionMetrics;
+  const [showAllRounds, setShowAllRounds] = useState(false);
+
+  // Format date to readable format
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  // Use funding history if available, otherwise fall back to single fundingRound
+  const fundingRounds = startup.fundingHistory || [{
+    type: startup.fundingRound.type,
+    amount: startup.fundingRound.amount,
+    date: startup.fundingRound.date,
+    leadInvestors: startup.fundingRound.leadInvestors,
+    allInvestors: undefined,
+  }];
+
+  const hasMultipleRounds = fundingRounds.length > 1;
+  const displayedRounds = showAllRounds ? fundingRounds : fundingRounds.slice(0, 1);
 
   return (
     <div className="space-y-6 mt-4">
+      {/* Funding Section - All Rounds */}
+      <div>
+        <SectionTitle>Funding History</SectionTitle>
+        <div className="space-y-3">
+          {/* Total Raised - Prominent Display */}
+          {startup.totalRaised && (
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-muted-foreground">Total Funding to Date</span>
+                </div>
+                <span className="text-2xl font-bold text-primary">{formatCurrency(startup.totalRaised)}</span>
+              </div>
+              {fundingRounds.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Across {fundingRounds.length} round{fundingRounds.length > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Individual Funding Rounds */}
+          {displayedRounds.map((round, index) => (
+            <div key={round.id || index} className="rounded-lg bg-secondary/50 p-4 space-y-3">
+              {/* Round Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge className={index === 0 ? "bg-primary" : "bg-secondary"}>{round.type}</Badge>
+                  <span className={`font-bold ${index === 0 ? 'text-2xl' : 'text-lg'}`}>
+                    {formatCurrency(round.amount)}
+                  </span>
+                  {round.valuation && (
+                    <span className="text-xs text-muted-foreground">
+                      @ {formatCurrency(round.valuation)} {round.valuationType || 'valuation'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatDate(round.date)}
+                </div>
+              </div>
+              
+              {/* Lead Investors */}
+              {round.leadInvestors && round.leadInvestors.length > 0 && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Lead Investor{round.leadInvestors.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {round.leadInvestors.map((investor) => (
+                      <Badge key={investor} variant="outline" className="bg-background">{investor}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All Investors (if available and different from lead) */}
+              {round.allInvestors && round.allInvestors.length > (round.leadInvestors?.length || 0) && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Participating Investors</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {round.allInvestors
+                      .filter(inv => !round.leadInvestors?.includes(inv))
+                      .map((investor) => (
+                        <Badge key={investor} variant="secondary" className="text-xs">{investor}</Badge>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Show More/Less Toggle */}
+          {hasMultipleRounds && (
+            <button
+              onClick={() => setShowAllRounds(!showAllRounds)}
+              className="w-full flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-lg border border-dashed border-border hover:border-foreground/30"
+            >
+              {showAllRounds ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Show less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Show {fundingRounds.length - 1} earlier round{fundingRounds.length > 2 ? 's' : ''}
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* What they do */}
       <div>
         <SectionTitle>What They Do</SectionTitle>

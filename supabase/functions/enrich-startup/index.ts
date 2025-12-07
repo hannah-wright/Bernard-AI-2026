@@ -28,6 +28,23 @@ interface StartupData {
   buzz_score: number
 }
 
+interface PriorExit {
+  company_name: string
+  exit_year?: number
+  exit_type: 'acquisition' | 'ipo' | 'other'
+  acquirer?: string
+  exit_amount?: number
+  founder_role?: string
+}
+
+interface PriorIPODetails {
+  company_name: string
+  ipo_year?: number
+  ticker_symbol?: string
+  market_cap_at_ipo?: number
+  founder_role?: string
+}
+
 interface VCIntelligence {
   founder_background: Record<string, unknown>
   team_composition: Record<string, unknown>
@@ -62,6 +79,22 @@ interface VCIntelligence {
   burn_multiple_band: string
   round_status: string
   has_lead: boolean
+  // New V2 fields
+  prior_exits?: PriorExit[]
+  has_prior_ipo?: boolean
+  prior_ipo_details?: PriorIPODetails
+  headcount_current?: number
+  headcount_6mo_ago?: number
+  engineering_headcount_current?: number
+  engineering_headcount_6mo_ago?: number
+  hiring_velocity_score?: number
+  founding_team_signal_score?: number
+  team_structure_type?: string
+  cofounders_worked_together_before?: boolean
+  has_technical_cofounder?: boolean
+  has_commercial_cofounder?: boolean
+  combined_years_experience?: number
+  network_strength_score?: number
 }
 
 const ENRICHMENT_PROMPT = `You are a VC analyst. Analyze this startup and provide structured intelligence data.
@@ -79,10 +112,21 @@ STARTUP INFO:
 
 Based on this information and your knowledge, generate realistic VC intelligence data. Make educated estimates based on the company stage, industry, and available information.
 
+IMPORTANT for VCs:
+- Prior exits are STRONG signals. If founders have previous exits, include detailed info.
+- Hiring velocity (especially engineering) is a key growth indicator.
+- Founding team composition matters: technical CEO + commercial COO, or cofounders who worked together before are strong signals.
+- Calculate founding_team_signal_score as: prior_exit(+30), faang_senior(+20), strong_network(+15), worked_together(+15), team_structure(+10), experience(+10)
+
+ADVANCED SCORES (critical for VCs):
+- unicorn_likelihood_score (0-100): ML-style score blending traction (25%), market size (25%), founder pedigree (25%), backer track record (25%). Flag is_10x_bet=true for top 5% (score >= 80).
+- backer_quality_score (0-100): Based on lead investor exit rate, co-investors who backed unicorns. Set backer_hot_streak=true if 2+ recent exits.
+- hidden_gem_score (0-100): For under-the-radar startups. Set is_hidden_gem=true if bootstrapped with ARR $500K+, IndieHackers/StarterStory presence, or no Crunchbase profile but strong signals.
+
 Return ONLY a valid JSON object (no markdown, no explanation) with these exact fields:
 {
   "founder_background": {
-    "founders": [{"name": "Founder Name", "years_in_industry": 8, "notable_employers": ["Company1"], "education": ["University"], "prior_startups": []}],
+    "founders": [{"name": "Founder Name", "role": "CEO", "years_in_industry": 8, "notable_employers": ["Company1"], "education": ["University"], "prior_startups": [], "is_technical": true, "is_commercial": false, "senior_faang_role": false}],
     "advisor_network": []
   },
   "team_composition": {
@@ -155,6 +199,9 @@ Return ONLY a valid JSON object (no markdown, no explanation) with these exact f
   "has_faang_alumni": false,
   "has_prior_exit": false,
   "prior_exit_count": 0,
+  "prior_exits": [],
+  "has_prior_ipo": false,
+  "prior_ipo_details": null,
   "investor_quality": "Established fund",
   "total_raised": 5000000,
   "current_round_size": 2000000,
@@ -162,7 +209,55 @@ Return ONLY a valid JSON object (no markdown, no explanation) with these exact f
   "runway_band": "12-18 months",
   "burn_multiple_band": "1-2x",
   "round_status": "Recently Closed",
-  "has_lead": true
+  "has_lead": true,
+  "headcount_current": 25,
+  "headcount_6mo_ago": 18,
+  "engineering_headcount_current": 12,
+  "engineering_headcount_6mo_ago": 8,
+  "hiring_velocity_score": 65,
+  "founding_team_signal_score": 55,
+  "team_structure_type": "balanced-cofounders",
+  "cofounders_worked_together_before": false,
+  "has_technical_cofounder": true,
+  "has_commercial_cofounder": true,
+  "combined_years_experience": 25,
+  "network_strength_score": 40,
+  
+  "unicorn_likelihood_score": 45,
+  "is_10x_bet": false,
+  "unicorn_score_factors": {
+    "traction_score": 12,
+    "market_size_score": 15,
+    "founder_pedigree_score": 10,
+    "backer_track_record_score": 8
+  },
+  
+  "backer_quality_score": 55,
+  "backer_hot_streak": false,
+  "backer_score_factors": {
+    "lead_investor_exit_rate": 0.3,
+    "exits_with_5x_plus": 1,
+    "total_exits": 3,
+    "co_investors_with_unicorns": []
+  },
+  "lead_investor_exit_rate": 0.3,
+  "investors_with_unicorn_exits": [],
+  
+  "is_hidden_gem": false,
+  "hidden_gem_score": 20,
+  "hidden_gem_signals": {
+    "is_bootstrapped_with_traction": false,
+    "has_indie_hackers_presence": false,
+    "has_product_hunt_launch": true,
+    "no_crunchbase_profile": false,
+    "patent_filings_recent": 0,
+    "hiring_streak_weeks": 0
+  },
+  "is_bootstrapped_growth": false,
+  "has_indie_presence": false,
+  "has_no_crunchbase": false,
+  "recent_patent_filings": 0,
+  "hiring_streak_weeks": 0
 }
 
 FIELD CONSTRAINTS:
@@ -177,8 +272,20 @@ FIELD CONSTRAINTS:
 - burn_multiple_band: "<1x", "1-2x", "2-3x", or ">3x"
 - round_status: "Raising", "Recently Closed", or "Exploring"
 - product_info.stage: "MVP", "Beta", "GA", or "Multi-product"
+- team_structure_type: "solo-technical", "solo-commercial", "technical-ceo-commercial-coo", "commercial-ceo-technical-cto", "balanced-cofounders", "technical-heavy", or "commercial-heavy"
+- prior_exits array: [{company_name, exit_year?, exit_type: "acquisition"|"ipo"|"other", acquirer?, exit_amount?, founder_role?}]
+- prior_ipo_details: {company_name, ipo_year?, ticker_symbol?, market_cap_at_ipo?, founder_role?} or null
+- hiring_velocity_score: 0-100 (80+ = explosive growth, 60-79 = strong, 40-59 = moderate, 20-39 = stable, <20 = declining)
+- founding_team_signal_score: 0-100 (calculate as described above)
+- unicorn_likelihood_score: 0-100 (80+ = top 5% "10x bet", 60-79 = high potential, 40-59 = moderate, <40 = lower)
+- backer_quality_score: 0-100 (80+ = elite backers, 60-79 = strong track record, 40-59 = good, <40 = standard)
+- hidden_gem_score: 0-100 (for bootstrapped/under-radar startups with traction signals)
+- is_10x_bet: true only if unicorn_likelihood_score >= 80
+- backer_hot_streak: true only if lead investors have 2+ exits in last 2 years
+- is_hidden_gem: true if bootstrapped with strong traction or indie presence without VC coverage
 
-Be realistic - early-stage startups should have lower scores.`
+Be realistic - early-stage startups should have lower scores. Only include prior_exits and prior_ipo_details if founders actually have prior exits.
+Hidden gems are RARE - most VC-backed startups are NOT hidden gems. Only flag if truly under-the-radar with strong signals.`
 
 async function enrichWithGemini(startup: StartupData, apiKey: string, retryCount = 0): Promise<VCIntelligence> {
   const prompt = ENRICHMENT_PROMPT
@@ -383,6 +490,39 @@ Deno.serve(async (req) => {
             burn_multiple_band: intelligence.burn_multiple_band,
             round_status: intelligence.round_status,
             has_lead: intelligence.has_lead,
+            // V2 fields - Enhanced VC Intelligence
+            prior_exits: intelligence.prior_exits || [],
+            has_prior_ipo: intelligence.has_prior_ipo || false,
+            prior_ipo_details: intelligence.prior_ipo_details || null,
+            headcount_current: intelligence.headcount_current,
+            headcount_6mo_ago: intelligence.headcount_6mo_ago,
+            engineering_headcount_current: intelligence.engineering_headcount_current,
+            engineering_headcount_6mo_ago: intelligence.engineering_headcount_6mo_ago,
+            hiring_velocity_score: intelligence.hiring_velocity_score,
+            founding_team_signal_score: intelligence.founding_team_signal_score,
+            team_structure_type: intelligence.team_structure_type,
+            cofounders_worked_together_before: intelligence.cofounders_worked_together_before || false,
+            has_technical_cofounder: intelligence.has_technical_cofounder || false,
+            has_commercial_cofounder: intelligence.has_commercial_cofounder || false,
+            combined_years_experience: intelligence.combined_years_experience,
+            network_strength_score: intelligence.network_strength_score,
+            // V3 fields - Advanced ML Scores
+            unicorn_likelihood_score: intelligence.unicorn_likelihood_score,
+            is_10x_bet: intelligence.is_10x_bet || false,
+            unicorn_score_factors: intelligence.unicorn_score_factors,
+            backer_quality_score: intelligence.backer_quality_score,
+            backer_hot_streak: intelligence.backer_hot_streak || false,
+            backer_score_factors: intelligence.backer_score_factors,
+            lead_investor_exit_rate: intelligence.lead_investor_exit_rate,
+            investors_with_unicorn_exits: intelligence.investors_with_unicorn_exits || [],
+            is_hidden_gem: intelligence.is_hidden_gem || false,
+            hidden_gem_score: intelligence.hidden_gem_score,
+            hidden_gem_signals: intelligence.hidden_gem_signals,
+            is_bootstrapped_growth: intelligence.is_bootstrapped_growth || false,
+            has_indie_presence: intelligence.has_indie_presence || false,
+            has_no_crunchbase: intelligence.has_no_crunchbase || false,
+            recent_patent_filings: intelligence.recent_patent_filings || 0,
+            hiring_streak_weeks: intelligence.hiring_streak_weeks || 0,
             updated_at: new Date().toISOString(),
           })
           .eq('id', startup.id)

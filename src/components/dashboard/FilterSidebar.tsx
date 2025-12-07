@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SlidersHorizontal, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, ChevronRight, Bell, Sparkles, TrendingUp, Eye, Rocket } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,8 +32,30 @@ import {
   InvestorQuality,
   RunwayBand,
   BurnMultipleBand,
-  RoundStatus
+  RoundStatus,
+  HiringVelocityBand,
+  FoundingTeamSignalBand,
+  UnicornScoreBand,
+  BackerScoreBand,
+  HiddenGemStatus
 } from '@/types/startup';
+import { useAlerts, describeFilters } from '@/hooks/useAlerts';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Collapsible,
   CollapsibleContent,
@@ -41,6 +63,7 @@ import {
 } from '@/components/ui/collapsible';
 import { locationData, getMetrosForCountries } from '@/data/locationData';
 import { useCountries, useMetros } from '@/hooks/useCountries';
+import { SavedThesisProfiles } from './SavedThesisProfiles';
 
 type FundingUnit = 'K' | 'M';
 
@@ -57,12 +80,61 @@ const runwayBands: RunwayBand[] = ['<6 months', '6-12 months', '12-18 months', '
 const burnMultipleBands: BurnMultipleBand[] = ['<1x', '1-2x', '2-3x', '>3x'];
 const roundStatuses: RoundStatus[] = ['Raising', 'Recently Closed', 'Exploring'];
 
+// New: Hiring velocity filter options
+const hiringVelocityBands: HiringVelocityBand[] = ['explosive', 'strong', 'moderate', 'stable', 'declining'];
+const hiringVelocityLabels: Record<HiringVelocityBand, string> = {
+  explosive: 'Explosive (80+)',
+  strong: 'Strong (60-79)',
+  moderate: 'Moderate (40-59)',
+  stable: 'Stable (20-39)',
+  declining: 'Declining (<20)'
+};
+
+// New: Founding team signal filter options
+const foundingTeamSignalBands: FoundingTeamSignalBand[] = ['exceptional', 'strong', 'good', 'average'];
+const foundingTeamSignalLabels: Record<FoundingTeamSignalBand, string> = {
+  exceptional: 'Exceptional (80+)',
+  strong: 'Strong (60-79)',
+  good: 'Good (40-59)',
+  average: 'Average (<40)'
+};
+
+// Unicorn Likelihood Score bands
+const unicornScoreBands: UnicornScoreBand[] = ['exceptional', 'high', 'moderate', 'low'];
+const unicornScoreBandLabels: Record<UnicornScoreBand, string> = {
+  exceptional: '🦄 Top 5% (80+)',
+  high: 'High Potential (60-79)',
+  moderate: 'Moderate (40-59)',
+  low: 'Lower (<40)'
+};
+
+// Backer Quality Score bands
+const backerScoreBands: BackerScoreBand[] = ['elite', 'strong', 'good', 'standard'];
+const backerScoreBandLabels: Record<BackerScoreBand, string> = {
+  elite: '🔥 Elite Backers (80+)',
+  strong: 'Strong Track Record (60-79)',
+  good: 'Good Backers (40-59)',
+  standard: 'Standard (<40)'
+};
+
+// Hidden Gem status options
+const hiddenGemStatuses: HiddenGemStatus[] = ['hidden-gem', 'emerging', 'none'];
+const hiddenGemStatusLabels: Record<HiddenGemStatus, string> = {
+  'hidden-gem': '💎 Hidden Gem',
+  'emerging': 'Emerging Signal',
+  'none': 'Standard Profile'
+};
+
 const dateRanges = [
   { value: '7', label: 'Last 7 days' },
   { value: '30', label: 'Last 30 days' },
   { value: '90', label: 'Last 3 months' },
   { value: '180', label: 'Last 6 months' },
+  { value: '365', label: 'Last 12 months' },
   { value: 'ytd', label: 'Year to date' },
+  { value: '2025', label: '2025' },
+  { value: '2024', label: '2024' },
+  { value: '2023', label: '2023' },
   { value: '9999', label: 'All time' },
 ];
 
@@ -107,8 +179,12 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
   const [fundingUnit, setFundingUnit] = useState<FundingUnit>('M');
   const [totalRaisedUnit, setTotalRaisedUnit] = useState<FundingUnit>('M');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [alertName, setAlertName] = useState('');
+  const [alertFrequency, setAlertFrequency] = useState<'daily' | 'weekly'>('daily');
   const { data: dbCountries = [] } = useCountries();
   const { data: dbMetros = [] } = useMetros();
+  const { alerts, createAlert, isCreating } = useAlerts();
 
   const getActualValue = (displayValue: number | undefined, unit: FundingUnit): number | undefined => {
     if (displayValue === undefined) return undefined;
@@ -196,7 +272,11 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
       accelerators: [],
       hasFaangAlumni: undefined,
       hasPriorExit: undefined,
+      hasPriorIPO: undefined,
       investorQualities: [],
+      hiringVelocityBands: [],
+      foundingTeamSignalBands: [],
+      cofoundersWorkedTogether: undefined,
       totalRaisedMin: undefined,
       totalRaisedMax: undefined,
       runwayBands: [],
@@ -224,7 +304,11 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
     filters.accelerators.length > 0 ||
     filters.hasFaangAlumni !== undefined ||
     filters.hasPriorExit !== undefined ||
+    filters.hasPriorIPO !== undefined ||
     filters.investorQualities.length > 0 ||
+    filters.hiringVelocityBands.length > 0 ||
+    filters.foundingTeamSignalBands.length > 0 ||
+    filters.cofoundersWorkedTogether !== undefined ||
     filters.totalRaisedMin !== undefined ||
     filters.totalRaisedMax !== undefined ||
     filters.runwayBands.length > 0 ||
@@ -250,7 +334,11 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
     filters.accelerators.length,
     filters.hasFaangAlumni !== undefined ? 1 : 0,
     filters.hasPriorExit !== undefined ? 1 : 0,
+    filters.hasPriorIPO !== undefined ? 1 : 0,
     filters.investorQualities.length,
+    filters.hiringVelocityBands.length,
+    filters.foundingTeamSignalBands.length,
+    filters.cofoundersWorkedTogether !== undefined ? 1 : 0,
     filters.totalRaisedMin !== undefined ? 1 : 0,
     filters.totalRaisedMax !== undefined ? 1 : 0,
     filters.runwayBands.length,
@@ -306,6 +394,14 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
 
   const filterContent = (
     <div className="space-y-4">
+      {/* Saved Thesis Profiles */}
+      <SavedThesisProfiles 
+        currentFilters={filters}
+        onApplyFilters={onFiltersChange}
+      />
+
+      <div className="border-t border-border pt-4" />
+
       {/* Date Added */}
       <div className="space-y-2">
         <Label className="text-sm text-muted-foreground">Date Added</Label>
@@ -537,8 +633,199 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
         {renderBooleanFilter('Serial Founder', 'isSerialFounder', 'serial-founder')}
         {renderBooleanFilter('Ex-FAANG Alumni', 'hasFaangAlumni', 'faang-alumni')}
         {renderBooleanFilter('Prior Exit', 'hasPriorExit', 'prior-exit')}
+        {renderBooleanFilter('Prior IPO', 'hasPriorIPO', 'prior-ipo')}
+        {renderBooleanFilter('Cofounders Worked Together', 'cofoundersWorkedTogether', 'cofounders-together')}
       </FilterSection>
 
+      {/* Founding Team Signal Score */}
+      <FilterSection title="Founding Team Signal">
+        <div className="space-y-2">
+          {foundingTeamSignalBands.map((band) => (
+            <div key={band} className="flex items-center space-x-2">
+              <Checkbox
+                id={`fts-${band}`}
+                checked={filters.foundingTeamSignalBands.includes(band)}
+                onCheckedChange={(checked) =>
+                  handleArrayFilterChange('foundingTeamSignalBands', band, checked as boolean)
+                }
+              />
+              <label
+                htmlFor={`fts-${band}`}
+                className="text-sm leading-none cursor-pointer"
+              >
+                {foundingTeamSignalLabels[band]}
+              </label>
+            </div>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Hiring Velocity */}
+      <FilterSection title="Hiring Velocity">
+        <div className="space-y-2">
+          {hiringVelocityBands.map((band) => (
+            <div key={band} className="flex items-center space-x-2">
+              <Checkbox
+                id={`hv-${band}`}
+                checked={filters.hiringVelocityBands.includes(band)}
+                onCheckedChange={(checked) =>
+                  handleArrayFilterChange('hiringVelocityBands', band, checked as boolean)
+                }
+              />
+              <label
+                htmlFor={`hv-${band}`}
+                className="text-sm leading-none cursor-pointer"
+              >
+                {hiringVelocityLabels[band]}
+              </label>
+            </div>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* =================================================================== */}
+      {/* ADVANCED ML SCORES - Premium Filters */}
+      {/* =================================================================== */}
+      
+      {/* Unicorn Likelihood Score */}
+      <FilterSection title="🦄 Unicorn Likelihood">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Min Score: {filters.unicornScoreMin || 0}</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">ML model (0-100) blending traction, market size, founder pedigree, and backer track record</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Slider
+            value={[filters.unicornScoreMin || 0]}
+            min={0}
+            max={100}
+            step={5}
+            onValueChange={([value]) => onFiltersChange({ ...filters, unicornScoreMin: value > 0 ? value : undefined })}
+          />
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id="10x-bets"
+              checked={filters.only10xBets || false}
+              onCheckedChange={(checked) => onFiltersChange({ ...filters, only10xBets: checked || undefined })}
+            />
+            <label htmlFor="10x-bets" className="text-sm cursor-pointer flex items-center gap-1">
+              <Rocket className="h-4 w-4 text-primary" />
+              <span>10x Bets Only</span>
+              <span className="text-xs text-muted-foreground">(Top 5%)</span>
+            </label>
+          </div>
+        </div>
+      </FilterSection>
+
+      {/* Backer Quality Score */}
+      <FilterSection title="🔥 Backer Quality">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Min Score: {filters.backerScoreMin || 0}</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">Lead investors' exit rate, co-investors with unicorns, and "hot streak" indicators</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Slider
+            value={[filters.backerScoreMin || 0]}
+            min={0}
+            max={100}
+            step={5}
+            onValueChange={([value]) => onFiltersChange({ ...filters, backerScoreMin: value > 0 ? value : undefined })}
+          />
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id="hot-streak"
+              checked={filters.backerHotStreakOnly || false}
+              onCheckedChange={(checked) => onFiltersChange({ ...filters, backerHotStreakOnly: checked || undefined })}
+            />
+            <label htmlFor="hot-streak" className="text-sm cursor-pointer flex items-center gap-1">
+              🔥 Hot Streak Only
+              <span className="text-xs text-muted-foreground">(2+ recent exits)</span>
+            </label>
+          </div>
+        </div>
+      </FilterSection>
+
+      {/* Hidden Gem Radar */}
+      <FilterSection title="💎 Hidden Gem Radar">
+        <div className="space-y-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger className="w-full text-left">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Bootstrapped with traction, obscure signals, no Crunchbase
+                </p>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">Find startups with $1M+ ARR, IndieHackers/StarterStory presence, patent filings, hiring streaks - but no traditional VC coverage</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="hidden-gem-only"
+              checked={filters.hiddenGemOnly || false}
+              onCheckedChange={(checked) => onFiltersChange({ ...filters, hiddenGemOnly: checked || undefined })}
+            />
+            <label htmlFor="hidden-gem-only" className="text-sm cursor-pointer font-medium">
+              💎 Hidden Gems Only
+            </label>
+          </div>
+          
+          <div className="space-y-2 pt-2 border-t border-border/50">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="bootstrapped-growth"
+                checked={filters.isBootstrappedGrowth || false}
+                onCheckedChange={(checked) => onFiltersChange({ ...filters, isBootstrappedGrowth: checked as boolean || undefined })}
+              />
+              <label htmlFor="bootstrapped-growth" className="text-sm cursor-pointer">
+                Bootstrapped with traction
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="indie-presence"
+                checked={filters.hasIndiePresence || false}
+                onCheckedChange={(checked) => onFiltersChange({ ...filters, hasIndiePresence: checked as boolean || undefined })}
+              />
+              <label htmlFor="indie-presence" className="text-sm cursor-pointer">
+                IndieHackers / StarterStory
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="no-crunchbase"
+                checked={filters.hasNoCrunchbase || false}
+                onCheckedChange={(checked) => onFiltersChange({ ...filters, hasNoCrunchbase: checked as boolean || undefined })}
+              />
+              <label htmlFor="no-crunchbase" className="text-sm cursor-pointer">
+                No Crunchbase profile
+              </label>
+            </div>
+          </div>
+        </div>
+      </FilterSection>
+
+      {/* =================================================================== */}
+      
       <FilterSection title="Accelerator">
         {renderCheckboxGroup(accelerators, 'accelerators', 'accel')}
       </FilterSection>
@@ -602,8 +889,36 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
         {renderCheckboxGroup(roundStatuses, 'roundStatuses', 'rstatus')}
         {renderBooleanFilter('Has Lead Investor', 'hasLead', 'has-lead')}
       </FilterSection>
+
+      {/* Create Alert Button */}
+      {hasActiveFilters && (
+        <div className="pt-4 border-t border-border mt-4">
+          <Button 
+            onClick={() => setShowAlertDialog(true)}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <Bell className="h-4 w-4" />
+            Create Alert for These Filters
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Get daily email summaries of new matches
+          </p>
+        </div>
+      )}
     </div>
   );
+
+  const handleCreateAlert = () => {
+    if (!alertName.trim()) return;
+    createAlert({
+      name: alertName,
+      filters: filters,
+      frequency: alertFrequency,
+    });
+    setAlertName('');
+    setShowAlertDialog(false);
+  };
 
   return (
     <>
@@ -628,6 +943,64 @@ export const FilterSidebar = ({ filters, onFiltersChange }: FilterSidebarProps) 
           {filterContent}
         </div>
       </aside>
+
+      {/* Create Alert Dialog */}
+      <Dialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Create Email Alert
+            </DialogTitle>
+            <DialogDescription>
+              Get notified when new startups match your current filters
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="alert-name">Alert Name</Label>
+              <Input
+                id="alert-name"
+                placeholder="e.g., AI Healthcare Series A"
+                value={alertName}
+                onChange={(e) => setAlertName(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Email Frequency</Label>
+              <Select value={alertFrequency} onValueChange={(v) => setAlertFrequency(v as 'daily' | 'weekly')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily Summary</SelectItem>
+                  <SelectItem value="weekly">Weekly Digest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+              <p className="text-sm font-medium">Current Filter Criteria:</p>
+              <div className="flex flex-wrap gap-1">
+                {describeFilters(filters).map((desc, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {desc}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAlertDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateAlert} disabled={!alertName.trim() || isCreating}>
+              {isCreating ? 'Creating...' : 'Create Alert'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile: Floating button + Sheet */}
       <div className="lg:hidden">

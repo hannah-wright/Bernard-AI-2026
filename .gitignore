@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Supabase local config
+supabase/.env
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +33,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+secrets/

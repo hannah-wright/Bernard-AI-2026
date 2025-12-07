@@ -17,6 +17,9 @@ import { PageErrorBoundary, ErrorBoundary } from "@/components/error/ErrorBounda
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Billing from "./pages/Billing";
+import VCDeals from "./pages/VCDeals";
+import StartupLists from "./pages/StartupLists";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Configure React Query with sensible defaults
@@ -88,12 +91,50 @@ const App = () => (
             } 
           />
           
+          {/* Password Reset */}
+          <Route 
+            path="/auth/reset-password" 
+            element={
+              <ErrorBoundary>
+                <ResetPassword />
+              </ErrorBoundary>
+            } 
+          />
+          
           {/* Billing & subscription management */}
           <Route 
             path="/billing" 
             element={
               <ErrorBoundary>
                 <Billing />
+              </ErrorBoundary>
+            } 
+          />
+          
+          {/* VC Deal Intelligence */}
+          <Route 
+            path="/vc-deals" 
+            element={
+              <ErrorBoundary>
+                <VCDeals />
+              </ErrorBoundary>
+            } 
+          />
+          
+          {/* Startup Lists */}
+          <Route 
+            path="/lists" 
+            element={
+              <ErrorBoundary>
+                <StartupLists />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="/lists/:listId" 
+            element={
+              <ErrorBoundary>
+                <StartupLists />
               </ErrorBoundary>
             } 
           />

@@ -269,19 +269,86 @@ function parseFundingFromArticle(article: ZyteArticle, sourceName: string, sourc
   }
 }
 
+// Normalize company name for duplicate detection
+function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+(inc\.?|llc|corp\.?|ltd\.?|co\.?)$/i, '')
+    .replace(/\s+(analytics|ai|labs|studio|tech|technologies|software|platform|health|bio|io)$/i, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function saveStartup(supabase: any, startup: ScrapedStartup): Promise<{ saved: boolean; id?: string; error?: string }> {
+async function saveStartup(supabase: any, startup: ScrapedStartup): Promise<{ saved: boolean; updated: boolean; id?: string; error?: string }> {
   try {
-    const { data: existing } = await supabase
+    const normalizedName = normalizeCompanyName(startup.name)
+    
+    // Check if startup already exists (exact match first)
+    let { data: existing } = await supabase
       .from('startups')
-      .select('id')
+      .select('id, name, total_raised, buzz_score')
       .eq('name', startup.name)
       .maybeSingle()
     
-    if (existing) {
-      return { saved: false, error: 'Already exists' }
+    // If no exact match, check for similar names (variations like "Plausible" vs "Plausible Analytics")
+    if (!existing) {
+      const { data: allStartups } = await supabase
+        .from('startups')
+        .select('id, name, total_raised, buzz_score')
+      
+      existing = allStartups?.find((s: { name: string }) => 
+        normalizeCompanyName(s.name) === normalizedName
+      )
+      
+      if (existing) {
+        console.log(`Found similar company: "${startup.name}" matches existing "${existing.name}"`)
+      }
     }
     
+    if (existing) {
+      // Update existing startup if new data is better (higher funding or buzz)
+      const shouldUpdate = startup.funding_amount > (existing.total_raised || 0) || 
+                          startup.buzz_score > (existing.buzz_score || 0)
+      
+      if (shouldUpdate) {
+        await supabase
+          .from('startups')
+          .update({
+            total_raised: Math.max(startup.funding_amount, existing.total_raised || 0),
+            buzz_score: Math.max(startup.buzz_score, existing.buzz_score || 0),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+        
+        // Add new funding round if amount is different
+        if (startup.funding_amount > 0) {
+          const { data: existingRound } = await supabase
+            .from('funding_rounds')
+            .select('id')
+            .eq('startup_id', existing.id)
+            .eq('amount', startup.funding_amount)
+            .eq('round_type', startup.round_type)
+            .maybeSingle()
+          
+          if (!existingRound) {
+            await supabase.from('funding_rounds').insert({
+              startup_id: existing.id,
+              amount: startup.funding_amount,
+              round_type: startup.round_type,
+              date: startup.funding_date,
+              lead_investors: startup.lead_investors
+            })
+          }
+        }
+        
+        console.log('Updated: ' + startup.name + ' with new data')
+        return { saved: false, updated: true, id: existing.id }
+      }
+      
+      return { saved: false, updated: false, error: 'Already exists, no update needed' }
+    }
+    
+    // Insert new startup
     const { data: newStartup, error: startupError } = await supabase
       .from('startups')
       .insert({
@@ -299,8 +366,13 @@ async function saveStartup(supabase: any, startup: ScrapedStartup): Promise<{ sa
       .single()
     
     if (startupError) {
-      console.error(`Error inserting ${startup.name}:`, startupError)
-      return { saved: false, error: startupError.message }
+      // Handle unique constraint violation gracefully
+      if (startupError.code === '23505') {
+        console.log('Duplicate detected for ' + startup.name + ', skipping')
+        return { saved: false, updated: false, error: 'Duplicate' }
+      }
+      console.error('Error inserting ' + startup.name + ':', startupError)
+      return { saved: false, updated: false, error: startupError.message }
     }
     
     // Add funding round
@@ -323,10 +395,10 @@ async function saveStartup(supabase: any, startup: ScrapedStartup): Promise<{ sa
     })
     
     // The database trigger will automatically queue for enrichment!
-    console.log(`✓ Saved: ${startup.name} (auto-queued for enrichment)`)
-    return { saved: true, id: newStartup.id }
+    console.log('Saved: ' + startup.name + ' (auto-queued for enrichment)')
+    return { saved: true, updated: false, id: newStartup.id }
   } catch (error) {
-    return { saved: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    return { saved: false, updated: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 
@@ -375,7 +447,9 @@ Deno.serve(async (req) => {
       .single()
     
     const startups: ScrapedStartup[] = []
-    let saved = 0, errors = 0
+    let saved = 0
+    let updated = 0
+    let skipped = 0
     
     // Get index page
     const indexHtml = await scrapeWithZyte(source.url, zyteApiKey, 'browser') as string | null
@@ -388,7 +462,7 @@ Deno.serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          error: `Failed to scrape ${source.name}`,
+          error: 'Failed to scrape ' + source.name,
           nextSourceIndex: sourceIndex + 1
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -397,7 +471,7 @@ Deno.serve(async (req) => {
     
     // Get article links
     const articleLinks = getArticleLinks(indexHtml, source.url)
-    console.log(`Found ${articleLinks.length} articles`)
+    console.log('Found ' + articleLinks.length + ' articles')
     
     // Process articles (limited to avoid timeout)
     for (const link of articleLinks.slice(0, 10)) {
@@ -408,7 +482,8 @@ Deno.serve(async (req) => {
           startups.push(startup)
           const result = await saveStartup(supabase, startup)
           if (result.saved) saved++
-          else errors++
+          else if (result.updated) updated++
+          else skipped++
         }
       }
       // Small delay to avoid rate limiting
@@ -424,7 +499,7 @@ Deno.serve(async (req) => {
       duration_ms: duration
     }).eq('id', logEntry.id)
     
-    console.log(`=== Completed: ${saved} saved, ${errors} errors, ${duration}ms ===`)
+    console.log('=== Completed: ' + saved + ' new, ' + updated + ' updated, ' + skipped + ' skipped, ' + duration + 'ms ===')
     
     return new Response(
       JSON.stringify({
@@ -432,7 +507,8 @@ Deno.serve(async (req) => {
         source: source.name,
         startupsFound: startups.length,
         startupsSaved: saved,
-        errors,
+        startupsUpdated: updated,
+        startupsSkipped: skipped,
         durationMs: duration,
         nextSourceIndex: sourceIndex + 1,
         hasMoreSources: sourceIndex + 1 < ALL_SOURCES.length
