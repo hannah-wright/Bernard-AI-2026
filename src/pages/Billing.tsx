@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Check, Loader2, CreditCard, AlertCircle, RefreshCw, Coins } from 'lucide-react';
 import { toast } from 'sonner';
+import { TeamManagement } from '@/components/billing/TeamManagement';
 
 const CANCELLATION_REASONS = [
   { value: 'too_expensive', label: 'Too expensive' },
@@ -353,27 +354,32 @@ const Billing = () => {
             </>
           )}
 
-          {/* Credit Balance & History */}
+          {/* Team Management - Prominent placement to encourage upgrades */}
           {user && (
-            <>
-              <div className="mt-12 mb-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Coins className="h-5 w-5" />
-                      Credit Balance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-4xl font-bold">
-                      {(profile?.credits_remaining ?? 0).toLocaleString()}
-                    </div>
-                    <p className="text-muted-foreground text-sm mt-1">credits remaining</p>
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="mt-12 mb-8">
+              <h2 className="text-xl font-semibold mb-4">Team Collaboration</h2>
+              <TeamManagement />
+            </div>
+          )}
 
-            </>
+          {/* Credit Balance */}
+          {user && (
+            <div className="mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Coins className="h-5 w-5" />
+                    Credit Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-bold">
+                    {(profile?.credits_remaining ?? 0).toLocaleString()}
+                  </div>
+                  <p className="text-muted-foreground text-sm mt-1">credits remaining</p>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </main>

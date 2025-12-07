@@ -1,10 +1,13 @@
+import { useState, useMemo, useEffect } from 'react';
 import { Startup, FilterState, SortOption } from '@/types/startup';
 import { StartupCard } from './StartupCard';
 import { Button } from '@/components/ui/button';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { locationData, countryNameToCode, getMetrosForCountries, cityBelongsToMetro } from '@/data/locationData';
 import { Link } from 'react-router-dom';
+
+const ITEMS_PER_PAGE = 50;
 
 interface StartupGridProps {
   startups: Startup[];
@@ -26,9 +29,16 @@ export const StartupGrid = ({
   onLoadMore 
 }: StartupGridProps) => {
   const { user } = useAuth();
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   
-  // Filter startups based on search query and current filters
-  const filteredStartups = startups.filter((startup) => {
+  // Reset display count when filters or search changes
+  useEffect(() => {
+    setDisplayCount(ITEMS_PER_PAGE);
+  }, [searchQuery, filters, sortBy]);
+  
+  // Memoize filtered startups to avoid recalculating on every render
+  // Only recalculate when startups, filters, searchQuery, or sortBy change
+  const filteredStartups = useMemo(() => startups.filter((startup) => {
     // Search filter - match name, sectors, location, or description
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -62,12 +72,13 @@ export const StartupGrid = ({
         case 'this_month':
           cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
-        case 'last_month':
+        case 'last_month': {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
           const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
           if (createdAt < lastMonth || createdAt > endOfLastMonth) return false;
           cutoffDate = lastMonth; // Won't be used, but set for safety
           break;
+        }
         case 'this_year':
           cutoffDate = new Date(now.getFullYear(), 0, 1);
           break;
@@ -91,23 +102,27 @@ export const StartupGrid = ({
     // Date range filter (Last Round Date) - skip for bootstrapped startups (they don't have funding dates)
     if (startup.fundingRound.type !== 'Bootstrapped') {
       const fundingDateStr = startup.fundingRound.date.split('T')[0]; // Get YYYY-MM-DD
-      const [year, month, day] = fundingDateStr.split('-').map(Number);
-      const fundingDate = new Date(year, month - 1, day); // Local timezone
+      const [fundingYear, month, day] = fundingDateStr.split('-').map(Number);
+      const fundingDate = new Date(fundingYear, month - 1, day); // Local timezone
       
-      let cutoffDate: Date;
-      
-      if (filters.dateRange === 'ytd') {
+      // Handle year-specific filters (2025, 2024, 2023, 2022)
+      if (['2025', '2024', '2023', '2022'].includes(filters.dateRange)) {
+        const filterYear = parseInt(filters.dateRange);
+        if (fundingYear !== filterYear) return false;
+      } else if (filters.dateRange === 'ytd') {
         // Year to date: from January 1st of current year
-        cutoffDate = new Date(new Date().getFullYear(), 0, 1);
-      } else {
+        const cutoffDate = new Date(new Date().getFullYear(), 0, 1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        if (fundingDate < cutoffDate) return false;
+      } else if (filters.dateRange !== '9999') {
+        // Days-based filter (7, 30, 90, 180, 365)
         const daysAgo = parseInt(filters.dateRange);
-        cutoffDate = new Date();
+        const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+        cutoffDate.setHours(0, 0, 0, 0);
+        if (fundingDate < cutoffDate) return false;
       }
-      // Set to start of day for fair comparison
-      cutoffDate.setHours(0, 0, 0, 0);
-      
-      if (fundingDate < cutoffDate) return false;
+      // If '9999' (All time), no filtering needed
     }
 
     // Current round size filter (fundingMin/Max) - skip for bootstrapped startups
@@ -192,6 +207,107 @@ export const StartupGrid = ({
       return false;
     }
 
+    // Prior IPO filter
+    if (filters.hasPriorIPO !== undefined && startup.hasPriorIPO !== filters.hasPriorIPO) {
+      return false;
+    }
+
+    // Cofounders Worked Together filter
+    if (filters.cofoundersWorkedTogether !== undefined && startup.cofoundersWorkedTogetherBefore !== filters.cofoundersWorkedTogether) {
+      return false;
+    }
+
+    // Founding Team Signal filter
+    if (filters.foundingTeamSignalBands.length > 0 && startup.foundingTeamSignal?.score !== undefined) {
+      const score = startup.foundingTeamSignal.score;
+      const matchesBand = filters.foundingTeamSignalBands.some(band => {
+        switch (band) {
+          case 'exceptional': return score >= 80;
+          case 'strong': return score >= 60 && score < 80;
+          case 'good': return score >= 40 && score < 60;
+          case 'average': return score < 40;
+          default: return false;
+        }
+      });
+      if (!matchesBand) return false;
+    }
+
+    // Hiring Velocity filter
+    if (filters.hiringVelocityBands.length > 0 && startup.hiringVelocityScore !== undefined) {
+      const score = startup.hiringVelocityScore;
+      const matchesBand = filters.hiringVelocityBands.some(band => {
+        switch (band) {
+          case 'explosive': return score >= 80;
+          case 'strong': return score >= 60 && score < 80;
+          case 'moderate': return score >= 40 && score < 60;
+          case 'stable': return score >= 20 && score < 40;
+          case 'declining': return score < 20;
+          default: return false;
+        }
+      });
+      if (!matchesBand) return false;
+    }
+
+    // ==========================================================================
+    // ADVANCED ML SCORE FILTERS
+    // ==========================================================================
+
+    // Unicorn Likelihood Score filter
+    if (filters.unicornScoreMin !== undefined && 
+        (startup.unicornLikelihoodScore === undefined || startup.unicornLikelihoodScore < filters.unicornScoreMin)) {
+      return false;
+    }
+    if (filters.unicornScoreMax !== undefined && 
+        startup.unicornLikelihoodScore !== undefined && 
+        startup.unicornLikelihoodScore > filters.unicornScoreMax) {
+      return false;
+    }
+    
+    // 10x Bets only filter
+    if (filters.only10xBets && !startup.is10xBet) {
+      return false;
+    }
+
+    // Backer Quality Score filter
+    if (filters.backerScoreMin !== undefined && 
+        (startup.backerQualityScore === undefined || startup.backerQualityScore < filters.backerScoreMin)) {
+      return false;
+    }
+    if (filters.backerScoreMax !== undefined && 
+        startup.backerQualityScore !== undefined && 
+        startup.backerQualityScore > filters.backerScoreMax) {
+      return false;
+    }
+    
+    // Backer Hot Streak filter
+    if (filters.backerHotStreakOnly && !startup.backerHotStreak) {
+      return false;
+    }
+
+    // Hidden Gem filters
+    if (filters.hiddenGemOnly && !startup.isHiddenGem) {
+      return false;
+    }
+    if (filters.isBootstrappedGrowth && !startup.isBootstrappedGrowth) {
+      return false;
+    }
+    if (filters.hasIndiePresence && !startup.hasIndiePresence) {
+      return false;
+    }
+    if (filters.hasNoCrunchbase && !startup.hasNoCrunchbase) {
+      return false;
+    }
+    if (filters.minPatentFilings !== undefined && 
+        (startup.recentPatentFilings === undefined || startup.recentPatentFilings < filters.minPatentFilings)) {
+      return false;
+    }
+    if (filters.minHiringStreakWeeks !== undefined && 
+        (startup.hiringStreakWeeks === undefined || startup.hiringStreakWeeks < filters.minHiringStreakWeeks)) {
+      return false;
+    }
+
+    // ==========================================================================
+
     // Accelerator filter
     if (filters.accelerators.length > 0 && startup.accelerator && !filters.accelerators.includes(startup.accelerator)) {
       return false;
@@ -241,26 +357,45 @@ export const StartupGrid = ({
       // Sort by last funding date
       return new Date(b.fundingRound.date).getTime() - new Date(a.fundingRound.date).getTime();
     }
-  });
+  }), [startups, filters, searchQuery, sortBy]);
+
+  // Paginate: show only displayCount items
+  const paginatedStartups = useMemo(() => {
+    return filteredStartups.slice(0, displayCount);
+  }, [filteredStartups, displayCount]);
+  
+  const hasMoreToShow = filteredStartups.length > displayCount;
+  const remainingCount = filteredStartups.length - displayCount;
 
   // Authenticated users see all data; unauthenticated see first 4 only
   const blurStartIndex = user ? Infinity : 4;
   
   // For logged out users, show placeholder blurred cards to fill the grid
-  const placeholderCount = !user ? Math.max(0, 6 - filteredStartups.length) : 0;
+  const placeholderCount = !user ? Math.max(0, 6 - paginatedStartups.length) : 0;
+  
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + ITEMS_PER_PAGE);
+    // If we need more data from the server, fetch it
+    if (onLoadMore && hasNextPage) {
+      onLoadMore();
+    }
+  };
 
   return (
     <div className="flex-1">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold">Startups to Explore:</h2>
+          <p className="text-sm text-muted-foreground">
+            Showing {paginatedStartups.length} of {filteredStartups.length} startups
+          </p>
         </div>
       </div>
 
       {filteredStartups.length > 0 || !user ? (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredStartups.map((startup, index) => {
+            {paginatedStartups.map((startup, index) => {
               const isBlurred = index >= blurStartIndex;
               
               return (
@@ -295,7 +430,7 @@ export const StartupGrid = ({
               <div
                 key={`placeholder-${index}`}
                 className="animate-fade-in relative"
-                style={{ animationDelay: `${Math.min(filteredStartups.length + index, 20) * 50}ms` }}
+                style={{ animationDelay: `${Math.min(paginatedStartups.length + index, 20) * 50}ms` }}
               >
                 <div className="blur-sm pointer-events-none select-none">
                   <div className="rounded-lg border border-border bg-card p-5">
@@ -339,22 +474,25 @@ export const StartupGrid = ({
             ))}
           </div>
           
-          {/* Load More Button - only for authenticated users when filters aren't reducing results */}
-          {user && hasNextPage && onLoadMore && filteredStartups.length === startups.length && (
+          {/* Load More Button - show when there are more results (either locally filtered or from server) */}
+          {user && (hasMoreToShow || hasNextPage) && (
             <div className="flex justify-center mt-8">
               <Button 
                 variant="outline" 
-                onClick={onLoadMore}
+                onClick={handleLoadMore}
                 disabled={isFetchingNextPage}
-                className="min-w-[200px]"
+                className="min-w-[200px] gap-2"
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Loading...
                   </>
                 ) : (
-                  'Load More Startups'
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Load More {hasMoreToShow ? `(${remainingCount} remaining)` : ''}
+                  </>
                 )}
               </Button>
             </div>

@@ -1,6 +1,27 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Startup, RoundType, Sector, ConfidenceLevel, FounderBackground, TeamComposition, TractionMetrics, UnitEconomics, ProductInfo, DefensibilitySignals, MarketContext, CompetitiveLandscape, SocialProof, RiskFlags } from '@/types/startup';
+import { 
+  Startup, 
+  RoundType, 
+  Sector, 
+  ConfidenceLevel, 
+  FounderBackground, 
+  TeamComposition, 
+  TractionMetrics, 
+  UnitEconomics, 
+  ProductInfo, 
+  DefensibilitySignals, 
+  MarketContext, 
+  CompetitiveLandscape, 
+  SocialProof, 
+  RiskFlags,
+  FundingRoundFull,
+  PriorExit,
+  PriorIPODetails,
+  HeadcountGrowth,
+  FoundingTeamSignal,
+  TeamStructureType
+} from '@/types/startup';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
@@ -11,6 +32,9 @@ interface DatabaseFundingRound {
   round_type: string;
   date: string;
   lead_investors: string[] | null;
+  all_investors?: string[] | null;
+  valuation?: number | null;
+  valuation_type?: string | null;
 }
 
 interface DatabaseDataSource {
@@ -21,7 +45,7 @@ interface DatabaseDataSource {
   url: string | null;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 // Helper to safely parse JSON fields
 function parseJsonField<T>(field: Json | null | undefined): T | undefined {
@@ -35,10 +59,12 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
   const from = pageParam * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // Fetch startups with pagination
+  // Fetch startups with pagination - only show FULLY enriched startups (version 3+)
+  // This ensures Market tab, Team tab, and all VC intelligence data is complete
   const { data: startups, error: startupsError } = await supabase
     .from('startups')
     .select('*')
+    .gte('enrichment_version', 3) // Only show startups with full enrichment
     .order('created_at', { ascending: false })
     .range(from, to);
 
@@ -61,13 +87,22 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
 
   if (sourcesError) throw sourcesError;
 
-  // Group funding rounds and data sources by startup_id
-  const fundingByStartup = (fundingRounds || []).reduce<Record<string, DatabaseFundingRound>>((acc, fr) => {
-    if (!acc[fr.startup_id] || new Date(fr.date) > new Date(acc[fr.startup_id].date)) {
-      acc[fr.startup_id] = fr;
-    }
+  // Group funding rounds by startup_id - keep all rounds sorted by date (newest first)
+  const allFundingByStartup = (fundingRounds || []).reduce<Record<string, DatabaseFundingRound[]>>((acc, fr) => {
+    if (!acc[fr.startup_id]) acc[fr.startup_id] = [];
+    acc[fr.startup_id].push(fr);
     return acc;
   }, {});
+  
+  // Sort each startup's funding rounds by date (newest first)
+  Object.keys(allFundingByStartup).forEach(id => {
+    allFundingByStartup[id].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+  
+  // Get just the latest funding round for backward compatibility
+  const fundingByStartup = Object.fromEntries(
+    Object.entries(allFundingByStartup).map(([id, rounds]) => [id, rounds[0]])
+  );
 
   const sourcesByStartup = (dataSources || []).reduce<Record<string, DatabaseDataSource[]>>((acc, ds) => {
     if (!acc[ds.startup_id]) acc[ds.startup_id] = [];
@@ -78,7 +113,40 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
   // Transform to Startup type
   const transformedStartups = startups.map((s): Startup => {
     const funding = fundingByStartup[s.id];
+    const allFunding = allFundingByStartup[s.id] || [];
     const sources = sourcesByStartup[s.id] || [];
+
+    // Transform all funding rounds to FundingRoundFull
+    const fundingHistory: FundingRoundFull[] = allFunding.map(fr => ({
+      id: fr.id,
+      type: fr.round_type as RoundType,
+      amount: fr.amount,
+      date: fr.date,
+      leadInvestors: fr.lead_investors || [],
+      allInvestors: fr.all_investors || undefined,
+      valuation: fr.valuation || undefined,
+      valuationType: fr.valuation_type as 'pre-money' | 'post-money' | undefined,
+    }));
+
+    // Build headcount growth data if available
+    const headcountGrowth: HeadcountGrowth | undefined = s.headcount_current ? {
+      current: s.headcount_current,
+      sixMonthsAgo: s.headcount_6mo_ago || undefined,
+      twelveMonthsAgo: s.headcount_12mo_ago || undefined,
+      engineeringCurrent: s.engineering_headcount_current || undefined,
+      engineeringSixMonthsAgo: s.engineering_headcount_6mo_ago || undefined,
+    } : undefined;
+
+    // Build founding team signal data if available
+    const foundingTeamSignal: FoundingTeamSignal | undefined = s.founding_team_signal_score ? {
+      score: s.founding_team_signal_score,
+      structureType: s.team_structure_type as TeamStructureType | undefined,
+      cofoundersWorkedTogetherBefore: s.cofounders_worked_together_before || undefined,
+      hasTechnicalCofounder: s.has_technical_cofounder || undefined,
+      hasCommercialCofounder: s.has_commercial_cofounder || undefined,
+      combinedYearsExperience: s.combined_years_experience || undefined,
+      networkStrengthScore: s.network_strength_score || undefined,
+    } : undefined;
 
     return {
       id: s.id,
@@ -105,6 +173,8 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
         date: new Date().toISOString().split('T')[0],
         leadInvestors: [],
       },
+      // All funding rounds history
+      fundingHistory: fundingHistory.length > 0 ? fundingHistory : undefined,
       metrics: {
         estimatedRevenue: s.estimated_revenue || undefined,
         estimatedSize: s.estimated_size || undefined,
@@ -129,6 +199,17 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
       hasPriorExit: s.has_prior_exit ?? undefined,
       priorExitCount: s.prior_exit_count ?? undefined,
       investorQuality: s.investor_quality as Startup['investorQuality'],
+      // Enhanced prior exit details
+      priorExits: parseJsonField<PriorExit[]>(s.prior_exits),
+      hasPriorIPO: s.has_prior_ipo ?? undefined,
+      priorIPODetails: parseJsonField<PriorIPODetails>(s.prior_ipo_details),
+      // Hiring velocity & headcount
+      headcountGrowth,
+      hiringVelocityScore: s.hiring_velocity_score ?? undefined,
+      // Founding team signal profile
+      foundingTeamSignal,
+      teamStructureType: s.team_structure_type as TeamStructureType | undefined,
+      cofoundersWorkedTogetherBefore: s.cofounders_worked_together_before ?? undefined,
       // Capital efficiency fields
       totalRaised: s.total_raised ?? undefined,
       currentRoundSize: s.current_round_size ?? undefined,
@@ -137,6 +218,23 @@ async function fetchStartupsPage(pageParam: number): Promise<{ startups: Startup
       burnMultipleBand: s.burn_multiple_band as Startup['burnMultipleBand'],
       roundStatus: s.round_status as Startup['roundStatus'],
       hasLead: s.has_lead ?? undefined,
+      // Advanced ML Scores
+      unicornLikelihoodScore: s.unicorn_likelihood_score ?? undefined,
+      is10xBet: s.is_10x_bet ?? false,
+      unicornScoreFactors: parseJsonField(s.unicorn_score_factors),
+      backerQualityScore: s.backer_quality_score ?? undefined,
+      backerHotStreak: s.backer_hot_streak ?? false,
+      backerScoreFactors: parseJsonField(s.backer_score_factors),
+      leadInvestorExitRate: s.lead_investor_exit_rate ? Number(s.lead_investor_exit_rate) : undefined,
+      investorsWithUnicornExits: s.investors_with_unicorn_exits ?? [],
+      isHiddenGem: s.is_hidden_gem ?? false,
+      hiddenGemScore: s.hidden_gem_score ?? undefined,
+      hiddenGemSignals: parseJsonField(s.hidden_gem_signals),
+      isBootstrappedGrowth: s.is_bootstrapped_growth ?? false,
+      hasIndiePresence: s.has_indie_presence ?? false,
+      hasNoCrunchbase: s.has_no_crunchbase ?? false,
+      recentPatentFilings: s.recent_patent_filings ?? 0,
+      hiringStreakWeeks: s.hiring_streak_weeks ?? 0,
       // VC Intelligence Fields
       founderBackground: parseJsonField<FounderBackground>(s.founder_background),
       teamComposition: parseJsonField<TeamComposition>(s.team_composition),
@@ -169,13 +267,17 @@ export function useStartups() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Flatten all pages into a single array
+  // Flatten all pages into a single array AND deduplicate by ID
+  // This prevents duplicates when pagination boundaries shift due to data changes
   const startups = query.data?.pages.flatMap(page => page.startups) ?? [];
+  const uniqueStartups = Array.from(
+    new Map(startups.map(s => [s.id, s])).values()
+  );
 
   return {
     ...query,
-    data: startups,
-    startups,
+    data: uniqueStartups,
+    startups: uniqueStartups,
   };
 }
 

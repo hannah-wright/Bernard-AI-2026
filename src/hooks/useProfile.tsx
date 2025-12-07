@@ -9,6 +9,15 @@ interface Profile {
   avatar_url: string | null;
   credits_remaining: number;
   subscription_tier: string | null;
+  // Onboarding fields
+  onboarding_completed_at: string | null;
+  onboarding_step: number;
+  onboarding_data: Record<string, any> | null;
+  role: string | null;
+  investment_sectors: string[] | null;
+  investment_stages: string[] | null;
+  investment_geos: string[] | null;
+  organization_id: string | null;
 }
 
 interface CreditTransaction {
@@ -25,6 +34,7 @@ interface ProfileContextType {
   transactions: CreditTransaction[];
   refreshProfile: () => Promise<void>;
   fetchTransactions: () => Promise<void>;
+  updateCredits: (newCredits: number) => void;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -89,6 +99,11 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // Fast credit update without full profile refetch
+  const updateCredits = useCallback((newCredits: number) => {
+    setProfile(prev => prev ? { ...prev, credits_remaining: newCredits } : null);
+  }, []);
+
   useEffect(() => {
     if (user) {
       refreshProfile();
@@ -99,7 +114,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   }, [user, refreshProfile]);
 
   return (
-    <ProfileContext.Provider value={{ profile, loading, transactions, refreshProfile, fetchTransactions }}>
+    <ProfileContext.Provider value={{ profile, loading, transactions, refreshProfile, fetchTransactions, updateCredits }}>
       {children}
     </ProfileContext.Provider>
   );

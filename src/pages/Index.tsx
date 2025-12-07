@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 import { FilterSidebar } from '@/components/dashboard/FilterSidebar';
 import { StartupGrid } from '@/components/dashboard/StartupGrid';
+import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { useStartups } from '@/hooks/useStartups';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { FilterState, SortOption } from '@/types/startup';
 import { Loader2, Search, X } from 'lucide-react';
 import { useCredits } from '@/hooks/useCredits';
@@ -16,6 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Custom hook for debouncing values
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 const Index = () => {
   const { 
@@ -32,6 +46,19 @@ const Index = () => {
     setShowUpgradeModal, 
     currentPlan 
   } = useCredits();
+  const { needsOnboarding, isLoading: onboardingLoading } = useOnboarding();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding for new users
+  useEffect(() => {
+    if (!onboardingLoading && needsOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, [needsOnboarding, onboardingLoading]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
 
   const handleCsvExport = () => {
     const escapeCSV = (value: string | undefined | null) => {
@@ -83,8 +110,8 @@ const Index = () => {
   };
   
   const [filters, setFilters] = useState<FilterState>({
-    dateRange: 'ytd',
-    dateAddedRange: 'this_week',
+    dateRange: '9999', // All time - don't filter by funding date by default
+    dateAddedRange: 'all', // Show all startups by default, sorted by recently added
     fundingMin: undefined,
     fundingMax: undefined,
     roundTypes: [],
@@ -101,22 +128,46 @@ const Index = () => {
     accelerators: [],
     hasFaangAlumni: undefined,
     hasPriorExit: undefined,
+    hasPriorIPO: undefined,
     investorQualities: [],
+    hiringVelocityBands: [],
+    foundingTeamSignalBands: [],
+    cofoundersWorkedTogether: undefined,
     totalRaisedMin: undefined,
     totalRaisedMax: undefined,
     runwayBands: [],
     burnMultipleBands: [],
     roundStatuses: [],
     hasLead: undefined,
+    // Advanced ML Score filters
+    unicornScoreMin: undefined,
+    unicornScoreMax: undefined,
+    unicornScoreBands: [],
+    only10xBets: undefined,
+    backerScoreMin: undefined,
+    backerScoreMax: undefined,
+    backerScoreBands: [],
+    backerHotStreakOnly: undefined,
+    hiddenGemOnly: undefined,
+    hiddenGemStatuses: [],
+    isBootstrappedGrowth: undefined,
+    hasIndiePresence: undefined,
+    hasNoCrunchbase: undefined,
+    minPatentFilings: undefined,
+    minHiringStreakWeeks: undefined,
   });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date_added');
 
+  // Debounce search query - wait 300ms after user stops typing before filtering
+  // This makes search feel much faster and reduces unnecessary re-renders
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   // Auto-load all pages when filters are active that need complete data
   // This ensures filtering works across all data, not just loaded pages
   const needsFullData = 
-    searchQuery.trim().length > 0 || 
+    debouncedSearchQuery.trim().length > 0 || 
     filters.roundTypes.includes('Bootstrapped') ||
     (filters.dateRange !== '9999') || // Not "All time" for Last Round Date
     (filters.dateAddedRange && filters.dateAddedRange !== 'all'); // Date Added filter active
@@ -126,6 +177,11 @@ const Index = () => {
       fetchNextPage();
     }
   }, [needsFullData, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Show onboarding flow for new users
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -177,7 +233,7 @@ const Index = () => {
               <StartupGrid 
                 startups={startups} 
                 filters={filters}
-                searchQuery={searchQuery}
+                searchQuery={debouncedSearchQuery}
                 sortBy={sortBy}
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}

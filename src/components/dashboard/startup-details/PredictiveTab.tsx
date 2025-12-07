@@ -2,8 +2,7 @@
  * Predictive AI Tab Content for Startup Detail Dialog
  */
 
-import { DollarSign, Users, Trophy } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Trophy } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { methodologyText, DataLabel } from '../DataMethodologyTooltips';
 import { ConfidenceBadge } from '../ConfidenceBadge';
@@ -23,29 +22,6 @@ export const PredictiveTab = ({ startup }: StartupDetailTabProps) => {
 
   return (
     <div className="space-y-6 mt-4">
-      {/* Funding Details */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg bg-secondary/50 p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <DollarSign className="h-4 w-4" />
-            <span className="text-sm">Funding Round</span>
-          </div>
-          <p className="text-2xl font-semibold">{formatCurrency(startup.fundingRound.amount)}</p>
-          <Badge className="mt-2">{startup.fundingRound.type}</Badge>
-        </div>
-        <div className="rounded-lg bg-secondary/50 p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Users className="h-4 w-4" />
-            <span className="text-sm">Lead Investors</span>
-          </div>
-          <div className="space-y-1">
-            {startup.fundingRound.leadInvestors.map((investor) => (
-              <p key={investor} className="text-sm font-medium">{investor}</p>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* AI Scores */}
       {hasAiScores && (
         <div>

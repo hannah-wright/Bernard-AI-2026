@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBilling } from '@/hooks/useBilling';
 import { useProfile } from '@/hooks/useProfile';
 import { BILLING_CONFIG } from '@/config/billing';
-import { Search, Bell, User, LogOut, CreditCard, Coins } from 'lucide-react';
+import { Search, User, LogOut, CreditCard, Coins, FolderHeart } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 import logo from '@/assets/logo.jpg';
 import {
   DropdownMenu,
@@ -45,11 +46,12 @@ export const Header = () => {
               <a href="/" className="text-sm font-medium text-foreground">
                 Dashboard
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Alerts
+              <a href="/vc-deals" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                VC Deals
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Saved
+              <a href="/lists" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                <FolderHeart className="h-4 w-4" />
+                Lists
               </a>
               <a href="/billing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Pricing
@@ -72,10 +74,7 @@ export const Header = () => {
             <Button variant="ghost" size="icon" className="hidden md:flex">
               <Search className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-success" />
-            </Button>
+            <NotificationBell />
             
             {user ? (
               <DropdownMenu>

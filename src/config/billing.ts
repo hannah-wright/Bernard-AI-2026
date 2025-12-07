@@ -3,7 +3,16 @@
 
 export const TRIAL_CONFIG = {
   credits: 50,
-  features: ['50 credits (one-time)', '3 saved filters', 'No alerts/notifications'],
+  savedFilters: 0,
+  users: 4, // Owner + 3 invited team members
+  features: ['50 credits (one-time)', 'Invite up to 3 team members', 'No saved filters'],
+} as const;
+
+export const FREE_CONFIG = {
+  credits: 0,
+  savedFilters: 0,
+  users: 4, // Owner + 3 invited team members
+  features: ['Limited access', 'Invite up to 3 team members'],
 } as const;
 
 export const BILLING_CONFIG = {
@@ -13,8 +22,8 @@ export const BILLING_CONFIG = {
       name: 'Starter',
       monthlyCredits: 500,
       users: 1,
-      savedFilters: 3,
-      features: ['500 credits/month', '1 user', '3 saved filters'],
+      savedFilters: 0,
+      features: ['500 credits/month', '1 user', 'No saved filters'],
       monthly: {
         productId: 'prod_TXoPZKDe4a3oSG',
         priceId: 'price_1SaimKA3QDciZJOqUXzTZPuY',
@@ -32,8 +41,8 @@ export const BILLING_CONFIG = {
       name: 'Growth',
       monthlyCredits: 1000,
       users: 3,
-      savedFilters: 10,
-      features: ['1,000 credits/month', '3 users', '10 saved filters', 'CSV export'],
+      savedFilters: 3,
+      features: ['1,000 credits/month', '3 users', '3 saved filters', 'CSV export'],
       monthly: {
         productId: 'prod_TXoPYwpa9g662R',
         priceId: 'price_1SaimhA3QDciZJOq8UCrfIB8',
@@ -52,7 +61,7 @@ export const BILLING_CONFIG = {
       monthlyCredits: 1800,
       users: -1, // unlimited
       savedFilters: -1, // unlimited
-      features: ['1,800 credits/month', 'Unlimited users', 'Unlimited filters', 'CSV export', 'API access', 'Priority support'],
+      features: ['1,800 credits/month', 'Unlimited users', 'Unlimited filters', 'CSV export', 'Priority support'],
       monthly: {
         productId: 'prod_TXoPCC5z4kbhda',
         priceId: 'price_1Sain8A3QDciZJOqbFA3KWj4',
@@ -146,4 +155,18 @@ export function canAccessAlerts(tier: string | null | undefined): boolean {
 export function canExportCsv(tier: string | null | undefined): boolean {
   if (!tier) return false;
   return ['growth', 'scale'].includes(tier.toLowerCase());
+}
+
+// Get saved filters limit for a tier
+export function getSavedFiltersLimit(tier: string | null | undefined): number {
+  if (!tier || tier.toLowerCase() === 'free' || tier.toLowerCase() === 'trial') {
+    return 0; // Free/Trial: no saved filters
+  }
+  const plan = BILLING_CONFIG.plans[tier.toLowerCase() as PlanKey];
+  return plan?.savedFilters ?? 0;
+}
+
+// Check if user has unlimited saved filters (scale plan)
+export function hasUnlimitedSavedFilters(tier: string | null | undefined): boolean {
+  return getSavedFiltersLimit(tier) === -1;
 }

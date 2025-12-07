@@ -24,6 +24,9 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
@@ -192,6 +195,41 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      setErrors({ email: emailResult.error.errors[0].message });
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Error sending reset email',
+          description: error.message.includes('rate')
+            ? 'Please wait a few minutes before requesting another reset email.'
+            : error.message,
+          variant: 'destructive',
+        });
+      } else {
+        setResetEmailSent(true);
+      }
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Unable to send reset email. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -249,7 +287,104 @@ const Auth = () => {
       </div>
       
       <div className="flex-1 flex items-center justify-center px-4">
-        {showEmailConfirmation ? (
+        {showForgotPassword ? (
+          resetEmailSent ? (
+            // Reset email sent confirmation
+            <div className="w-full max-w-md space-y-8 text-center">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mail className="h-12 w-12 text-primary" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <h1 className="font-serif text-2xl font-bold tracking-tight">Check your email</h1>
+                <p className="text-muted-foreground">
+                  We sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Click the link in the email to reset your password.
+                </p>
+              </div>
+
+              <div className="pt-4 space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Didn't receive the email? Check your spam folder.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    variant="default"
+                    onClick={handleForgotPassword}
+                    disabled={isSendingReset}
+                    className="text-sm"
+                  >
+                    {isSendingReset ? 'Sending...' : 'Resend reset email'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmailSent(false);
+                    }}
+                    className="text-sm"
+                  >
+                    Back to sign in
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Forgot password form
+            <div className="w-full max-w-md space-y-8">
+              <div className="text-center">
+                <h1 className="font-serif text-3xl font-bold tracking-tight">Reset Password</h1>
+                <p className="mt-2 text-muted-foreground">
+                  Enter your email and we'll send you a reset link
+                </p>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail">Email</Label>
+                  <Input
+                    id="resetEmail"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
+                    placeholder="you@example.com"
+                    className={`bg-background ${errors.email ? 'border-destructive' : ''}`}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
+                </div>
+                
+                <Button
+                  onClick={handleForgotPassword}
+                  className="w-full"
+                  disabled={isSendingReset}
+                >
+                  {isSendingReset ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            </div>
+          )
+        ) : showEmailConfirmation ? (
           <div className="w-full max-w-md space-y-8 text-center">
             <div className="flex justify-center">
               <div className="relative">
@@ -397,7 +532,18 @@ const Auth = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
