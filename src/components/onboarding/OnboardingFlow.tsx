@@ -499,7 +499,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {step === 5 && (
                 <div className="space-y-6">
                   <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold">✨ {matchedStartups.length} startups match your thesis!</h1>
+                    <h1 className="text-3xl font-bold">✨ Here are some startups that match your criteria!</h1>
                     <p className="text-muted-foreground">
                       Based on: {data.sectors.slice(0, 3).join(', ')} • {data.stages.slice(0, 2).join(', ')}
                     </p>
@@ -536,7 +536,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     ))}
                     {matchedStartups.length > 5 && (
                       <p className="text-center text-sm text-muted-foreground py-2">
-                        + {matchedStartups.length - 5} more matches
+                        + More
                       </p>
                     )}
                   </div>

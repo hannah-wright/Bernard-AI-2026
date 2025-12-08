@@ -122,96 +122,104 @@ export function useStartupLists() {
     queryFn: async (): Promise<StartupList[]> => {
       if (!user) return [];
 
-      // Get lists owned by user
-      const { data: ownedLists, error: ownedError } = await supabase
-        .from('startup_lists')
-        .select(`
-          *,
-          profiles:owner_id (full_name, email),
-          startup_list_items (count)
-        `)
-        .eq('owner_id', user.id)
-        .order('position');
-
-      if (ownedError) throw ownedError;
-
-      // Get team-visible lists from org
-      let teamLists: any[] = [];
-      if (organization?.id) {
-        const { data, error } = await supabase
+      try {
+        // Get lists owned by user
+        const { data: ownedLists, error: ownedError } = await supabase
           .from('startup_lists')
           .select(`
             *,
             profiles:owner_id (full_name, email),
             startup_list_items (count)
           `)
-          .eq('organization_id', organization.id)
-          .eq('visibility', 'team')
-          .neq('owner_id', user.id)
+          .eq('owner_id', user.id)
           .order('position');
 
-        if (!error && data) {
-          teamLists = data;
+        if (ownedError) {
+          console.warn('Error fetching owned lists:', ownedError);
+          return []; // Return empty instead of throwing
         }
-      }
 
-      // Get shared lists
-      const { data: shares } = await supabase
-        .from('startup_list_shares')
-        .select('list_id, permission')
-        .eq('user_id', user.id);
+        // Get team-visible lists from org
+        let teamLists: any[] = [];
+        if (organization?.id) {
+          const { data, error } = await supabase
+            .from('startup_lists')
+            .select(`
+              *,
+              profiles:owner_id (full_name, email),
+              startup_list_items (count)
+            `)
+            .eq('organization_id', organization.id)
+            .eq('visibility', 'team')
+            .neq('owner_id', user.id)
+            .order('position');
 
-      const shareMap = new Map(shares?.map(s => [s.list_id, s.permission]) || []);
-
-      let sharedLists: any[] = [];
-      if (shares && shares.length > 0) {
-        const { data, error } = await supabase
-          .from('startup_lists')
-          .select(`
-            *,
-            profiles:owner_id (full_name, email),
-            startup_list_items (count)
-          `)
-          .in('id', shares.map(s => s.list_id))
-          .neq('owner_id', user.id);
-
-        if (!error && data) {
-          sharedLists = data;
+          if (!error && data) {
+            teamLists = data;
+          }
         }
-      }
 
-      // Combine and transform
-      const allLists = [...(ownedLists || []), ...teamLists, ...sharedLists];
-      
-      // Remove duplicates
-      const uniqueLists = Array.from(new Map(allLists.map(l => [l.id, l])).values());
+        // Get shared lists
+        const { data: shares } = await supabase
+          .from('startup_list_shares')
+          .select('list_id, permission')
+          .eq('user_id', user.id);
 
-      return uniqueLists.map((list: any) => {
-        const isOwner = list.owner_id === user.id;
-        const sharePermission = shareMap.get(list.id);
-        const isTeamVisible = list.visibility === 'team' && list.organization_id === organization?.id;
+        const shareMap = new Map(shares?.map(s => [s.list_id, s.permission]) || []);
+
+        let sharedLists: any[] = [];
+        if (shares && shares.length > 0) {
+          const { data, error } = await supabase
+            .from('startup_lists')
+            .select(`
+              *,
+              profiles:owner_id (full_name, email),
+              startup_list_items (count)
+            `)
+            .in('id', shares.map(s => s.list_id))
+            .neq('owner_id', user.id);
+
+          if (!error && data) {
+            sharedLists = data;
+          }
+        }
+
+        // Combine and transform
+        const allLists = [...(ownedLists || []), ...teamLists, ...sharedLists];
         
-        return {
-          id: list.id,
-          name: list.name,
-          description: list.description,
-          color: list.color,
-          icon: list.icon,
-          ownerId: list.owner_id,
-          ownerName: list.profiles?.full_name,
-          ownerEmail: list.profiles?.email,
-          organizationId: list.organization_id,
-          visibility: list.visibility,
-          isDefault: list.is_default,
-          position: list.position,
-          itemCount: list.startup_list_items?.[0]?.count || 0,
-          createdAt: list.created_at,
-          updatedAt: list.updated_at,
-          isOwner,
-          canEdit: isOwner || sharePermission === 'edit',
-          permission: isOwner ? 'owner' : (sharePermission || (isTeamVisible ? 'view' : undefined)),
-        };
-      });
+        // Remove duplicates
+        const uniqueLists = Array.from(new Map(allLists.map(l => [l.id, l])).values());
+
+        return uniqueLists.map((list: any) => {
+          const isOwner = list.owner_id === user.id;
+          const sharePermission = shareMap.get(list.id);
+          const isTeamVisible = list.visibility === 'team' && list.organization_id === organization?.id;
+          
+          return {
+            id: list.id,
+            name: list.name,
+            description: list.description,
+            color: list.color,
+            icon: list.icon,
+            ownerId: list.owner_id,
+            ownerName: list.profiles?.full_name,
+            ownerEmail: list.profiles?.email,
+            organizationId: list.organization_id,
+            visibility: list.visibility,
+            isDefault: list.is_default,
+            position: list.position,
+            itemCount: list.startup_list_items?.[0]?.count || 0,
+            createdAt: list.created_at,
+            updatedAt: list.updated_at,
+            isOwner,
+            canEdit: isOwner || sharePermission === 'edit',
+            permission: isOwner ? 'owner' : (sharePermission || (isTeamVisible ? 'view' : undefined)),
+          };
+        });
+      } catch (err) {
+        console.warn('Error fetching startup lists:', err);
+        return []; // Return empty array instead of throwing
+      }
     },
     enabled: !!user,
   });
