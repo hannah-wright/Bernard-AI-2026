@@ -173,9 +173,15 @@ export const StartupCard = ({ startup, onFavoriteToggle }: StartupCardProps) => 
           <Badge variant="secondary" className="font-medium">
             {startup.fundingRound.type}
           </Badge>
-          <span className="text-lg font-semibold text-foreground">
-            {formatCurrency(startup.fundingRound.amount)}
-          </span>
+          {startup.fundingRound.type === 'Bootstrapped' || startup.fundingRound.amount === 0 ? (
+            <span className="text-sm font-medium text-muted-foreground">
+              Bootstrapped
+            </span>
+          ) : (
+            <span className="text-lg font-semibold text-foreground">
+              {formatCurrency(startup.fundingRound.amount)}
+            </span>
+          )}
           <ConfidenceBadge level={highestConfidence} showLabel={false} />
         </div>
 

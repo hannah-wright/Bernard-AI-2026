@@ -21,8 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -40,7 +38,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Sector, RoundType } from '@/types/startup';
+import { RoundType } from '@/types/startup';
 
 // Types
 interface OnboardingData {
@@ -48,8 +46,6 @@ interface OnboardingData {
   sectors: string[];
   stages: string[];
   geos: string[];
-  checkSizeMin?: number;
-  checkSizeMax?: number;
   listName?: string;
   listColor?: string;
   teamEmail?: string;
@@ -70,26 +66,22 @@ const ROLES = [
   { id: 'other', label: 'Other', icon: '👤' },
 ];
 
-const SECTORS: { id: Sector; label: string; icon: string }[] = [
+const SECTORS: { id: string; label: string; icon: string }[] = [
+  { id: 'all', label: 'All Industries', icon: '🌐' },
   { id: 'AI/ML', label: 'AI / ML', icon: '🤖' },
   { id: 'SaaS', label: 'SaaS', icon: '☁️' },
   { id: 'Fintech', label: 'Fintech', icon: '💳' },
   { id: 'Healthcare', label: 'Healthcare', icon: '🏥' },
-  { id: 'Biotech', label: 'Biotech', icon: '🧬' },
-  { id: 'Climate Tech', label: 'Climate Tech', icon: '🌱' },
   { id: 'Enterprise', label: 'Enterprise', icon: '🏢' },
   { id: 'Consumer', label: 'Consumer', icon: '🛒' },
-  { id: 'E-commerce', label: 'E-commerce', icon: '📦' },
 ];
 
-const STAGES: { id: RoundType; label: string }[] = [
-  { id: 'Bootstrapped', label: 'Bootstrapped' },
-  { id: 'Pre-Seed', label: 'Pre-Seed' },
-  { id: 'Seed', label: 'Seed' },
-  { id: 'Series A', label: 'Series A' },
-  { id: 'Series B', label: 'Series B' },
-  { id: 'Series C', label: 'Series C' },
-  { id: 'Series D+', label: 'Series D+' },
+// Simplified stage groups for onboarding (maps to multiple actual stages)
+const STAGE_GROUPS = [
+  { id: 'all', label: 'All Stages', description: 'Show everything', stages: [] as RoundType[] },
+  { id: 'early', label: 'Early Stage', description: 'Bootstrapped → Seed', stages: ['Bootstrapped', 'Pre-Seed', 'Seed'] as RoundType[] },
+  { id: 'growth', label: 'Growth Stage', description: 'Series A → B', stages: ['Series A', 'Series B'] as RoundType[] },
+  { id: 'late', label: 'Late Stage', description: 'Series C+', stages: ['Series C', 'Series D+'] as RoundType[] },
 ];
 
 const GEOS = [
@@ -127,8 +119,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     sectors: [],
     stages: [],
     geos: [],
-    checkSizeMin: 100000,
-    checkSizeMax: 2000000,
     listColor: 'blue',
     alertsEnabled: true,
     alertFrequency: 'daily',
@@ -137,27 +127,42 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const totalSteps = 7;
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
-  // Calculate matched startups based on selections
+  // Calculate matched startups based on selections (lenient matching)
   useEffect(() => {
     if (step === 5 && startups.length > 0) {
+      // Expand stage groups into actual stages
+      const expandedStages: string[] = [];
+      data.stages.forEach(stageId => {
+        if (stageId === 'all') return; // All stages means no filter
+        const group = STAGE_GROUPS.find(g => g.id === stageId);
+        if (group) {
+          expandedStages.push(...group.stages);
+        }
+      });
+      
       const filtered = startups.filter(s => {
-        // Sector match
-        if (data.sectors.length > 0) {
+        // Sector match - skip if "all" selected or no sectors
+        if (data.sectors.length > 0 && !data.sectors.includes('all')) {
           const hasMatchingSector = s.sector.some(sec => data.sectors.includes(sec));
           if (!hasMatchingSector) return false;
         }
-        // Stage match
-        if (data.stages.length > 0) {
-          if (!data.stages.includes(s.fundingRound.type)) return false;
+        // Stage match - skip if "all" selected or no stages
+        if (expandedStages.length > 0) {
+          if (!expandedStages.includes(s.fundingRound.type)) return false;
         }
-        // Geo match (simplified)
+        // Geo match - skip if "global" selected
         if (data.geos.length > 0 && !data.geos.includes('global')) {
-          // Basic geo matching
-          if (data.geos.includes('US') && s.location.country !== 'United States') return false;
+          // Lenient geo matching - check if ANY geo matches
+          const matchesGeo = data.geos.some(geo => {
+            if (geo === 'US') return s.location.country === 'United States';
+            if (geo === 'EU') return ['Germany', 'France', 'UK', 'Netherlands', 'Spain', 'Italy', 'Sweden', 'Ireland'].includes(s.location.country || '');
+            return true; // Other geos are lenient
+          });
+          if (!matchesGeo) return false;
         }
         return true;
       });
-      setMatchedStartups(filtered.slice(0, 12));
+      setMatchedStartups(filtered.slice(0, 20)); // Show more results
     }
   }, [step, startups, data.sectors, data.stages, data.geos]);
 
@@ -191,9 +196,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const canProceed = (): boolean => {
     switch (step) {
       case 1: return !!data.role;
-      case 2: return data.sectors.length > 0;
-      case 3: return data.stages.length > 0;
-      case 4: return data.geos.length > 0;
+      case 2: return data.sectors.length > 0; // At least one (can be "all")
+      case 3: return data.stages.length > 0; // At least one (can be "all")
+      case 4: return data.geos.length > 0; // At least one (can be "global")
       case 5: return true;
       case 6: return true;
       case 7: return true;
@@ -204,30 +209,39 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handleComplete = async () => {
     setIsLoading(true);
     try {
+      // Expand stage groups into actual stages for storage
+      const expandedStages: string[] = [];
+      data.stages.forEach(stageId => {
+        if (stageId === 'all') return; // All stages means no filter
+        const group = STAGE_GROUPS.find(g => g.id === stageId);
+        if (group) {
+          expandedStages.push(...group.stages);
+        }
+      });
+
+      // Clean sectors (remove "all" if present)
+      const cleanSectors = data.sectors.filter(s => s !== 'all');
+
       // 1. Save profile data
       await supabase.from('profiles').update({
         role: data.role,
-        investment_sectors: data.sectors,
-        investment_stages: data.stages,
-        investment_geos: data.geos,
-        check_size_min: data.checkSizeMin,
-        check_size_max: data.checkSizeMax,
+        investment_sectors: cleanSectors.length > 0 ? cleanSectors : null,
+        investment_stages: expandedStages.length > 0 ? expandedStages : null,
+        investment_geos: data.geos.filter(g => g !== 'global'),
         onboarding_completed_at: new Date().toISOString(),
         onboarding_step: totalSteps,
         onboarding_data: data,
       }).eq('id', user?.id);
 
-      // 2. Create saved filter from thesis
-      if (data.sectors.length > 0 || data.stages.length > 0) {
+      // 2. Create saved filter from thesis (only if meaningful filters)
+      if (cleanSectors.length > 0 || expandedStages.length > 0) {
         await supabase.from('user_thesis_profiles').insert({
           user_id: user?.id,
           name: 'My Investment Thesis',
           filters: {
-            sectors: data.sectors,
-            roundTypes: data.stages,
+            sectors: cleanSectors,
+            roundTypes: expandedStages,
             regions: data.geos.filter(g => g !== 'global'),
-            fundingMin: data.checkSizeMin,
-            fundingMax: data.checkSizeMax,
           },
         });
       }
@@ -329,81 +343,99 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               {step === 2 && (
                 <div className="space-y-8">
                   <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold">📊 What sectors do you focus on?</h1>
+                    <h1 className="text-3xl font-bold">📊 What industries interest you?</h1>
                     <p className="text-muted-foreground text-lg">
-                      Select all that apply
+                      Select multiple to see more startups
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {SECTORS.map(sector => (
                       <button
                         key={sector.id}
-                        onClick={() => toggleArrayItem('sectors', sector.id)}
+                        onClick={() => {
+                          // If selecting "all", clear others. If selecting specific, remove "all"
+                          if (sector.id === 'all') {
+                            setData(prev => ({ ...prev, sectors: ['all'] }));
+                          } else {
+                            setData(prev => ({
+                              ...prev,
+                              sectors: prev.sectors.includes(sector.id)
+                                ? prev.sectors.filter(s => s !== sector.id)
+                                : [...prev.sectors.filter(s => s !== 'all'), sector.id]
+                            }));
+                          }
+                        }}
                         className={cn(
-                          "p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3",
+                          "p-3 rounded-xl border-2 transition-all text-center",
                           data.sectors.includes(sector.id)
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
+                            : "border-border hover:border-primary/50",
+                          sector.id === 'all' && "col-span-2 md:col-span-4"
                         )}
                       >
                         <span className="text-xl">{sector.icon}</span>
-                        <span className="font-medium">{sector.label}</span>
+                        <p className="font-medium text-sm mt-1">{sector.label}</p>
                         {data.sectors.includes(sector.id) && (
-                          <Check className="h-4 w-4 text-primary ml-auto" />
+                          <Check className="h-4 w-4 text-primary mx-auto mt-1" />
                         )}
                       </button>
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground text-center">
-                    💡 85% of VCs on BernardAI focus on 2-4 sectors
+                    💡 Pick "All Industries" to see everything, or select 2-3 for focused results
                   </p>
                 </div>
               )}
 
-              {/* Step 3: Stages & Check Size */}
+              {/* Step 3: Stages (simplified) */}
               {step === 3 && (
                 <div className="space-y-8">
                   <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold">💰 What stages do you invest in?</h1>
+                    <h1 className="text-3xl font-bold">💰 What funding stages?</h1>
                     <p className="text-muted-foreground text-lg">
-                      Select all stages you're interested in
+                      Select one or more
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {STAGES.map(stage => (
+                  <div className="grid grid-cols-2 gap-4">
+                    {STAGE_GROUPS.map(group => (
                       <button
-                        key={stage.id}
-                        onClick={() => toggleArrayItem('stages', stage.id)}
+                        key={group.id}
+                        onClick={() => {
+                          // If selecting "all", clear others. If selecting specific, remove "all"
+                          if (group.id === 'all') {
+                            setData(prev => ({ ...prev, stages: ['all'] }));
+                          } else {
+                            setData(prev => ({
+                              ...prev,
+                              stages: prev.stages.includes(group.id)
+                                ? prev.stages.filter(s => s !== group.id)
+                                : [...prev.stages.filter(s => s !== 'all'), group.id]
+                            }));
+                          }
+                        }}
                         className={cn(
-                          "p-4 rounded-xl border-2 transition-all",
-                          data.stages.includes(stage.id)
+                          "p-5 rounded-xl border-2 transition-all text-left",
+                          data.stages.includes(group.id)
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
+                            : "border-border hover:border-primary/50",
+                          group.id === 'all' && "col-span-2"
                         )}
                       >
-                        <span className="font-medium">{stage.label}</span>
-                        {data.stages.includes(stage.id) && (
-                          <Check className="h-4 w-4 text-primary inline ml-2" />
-                        )}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-lg">{group.label}</p>
+                            <p className="text-sm text-muted-foreground">{group.description}</p>
+                          </div>
+                          {data.stages.includes(group.id) && (
+                            <Check className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>
-                  <div className="space-y-4 pt-4 border-t">
-                    <Label>Typical check size range</Label>
-                    <div className="px-2">
-                      <Slider
-                        value={[data.checkSizeMin || 100000, data.checkSizeMax || 2000000]}
-                        min={25000}
-                        max={10000000}
-                        step={25000}
-                        onValueChange={([min, max]) => updateData({ checkSizeMin: min, checkSizeMax: max })}
-                      />
-                      <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                        <span>${((data.checkSizeMin || 100000) / 1000).toFixed(0)}K</span>
-                        <span>${((data.checkSizeMax || 2000000) / 1000000).toFixed(1)}M</span>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    💡 Select "All Stages" if you're stage-agnostic
+                  </p>
                 </div>
               )}
 

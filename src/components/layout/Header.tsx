@@ -53,9 +53,6 @@ export const Header = () => {
                 <FolderHeart className="h-4 w-4" />
                 Lists
               </a>
-              <a href="/billing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
-              </a>
             </nav>
           </div>
 

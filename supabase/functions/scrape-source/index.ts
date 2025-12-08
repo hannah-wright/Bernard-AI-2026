@@ -29,11 +29,27 @@ interface ScrapedStartup {
 
 // All available sources
 const ALL_SOURCES = [
+  // News & Funding Sources
   { name: 'TechCrunch Startups', url: 'https://techcrunch.com/category/startups/', type: 'news', confidence: 'high' },
   { name: 'TechCrunch Funding', url: 'https://techcrunch.com/tag/funding/', type: 'news', confidence: 'high' },
   { name: 'VentureBeat Funding', url: 'https://venturebeat.com/category/business/deals/', type: 'news', confidence: 'high' },
   { name: 'Crunchbase Venture', url: 'https://news.crunchbase.com/venture/', type: 'news', confidence: 'high' },
   { name: 'Crunchbase Seed', url: 'https://news.crunchbase.com/seed/', type: 'news', confidence: 'high' },
+  
+  // Bootstrapped / Indie Startup Sources
+  { name: 'Indie Hackers', url: 'https://www.indiehackers.com/products', type: 'directory', confidence: 'medium' },
+  { name: 'Indie Hackers Interviews', url: 'https://www.indiehackers.com/interviews', type: 'interview', confidence: 'high' },
+  { name: 'Starter Story', url: 'https://www.starterstory.com/stories', type: 'interview', confidence: 'high' },
+  { name: 'Starter Story Ideas', url: 'https://www.starterstory.com/ideas', type: 'directory', confidence: 'medium' },
+  { name: 'Startups Gallery', url: 'https://startups.gallery/', type: 'directory', confidence: 'medium' },
+  
+  // Product Launch Sources
+  { name: 'Product Hunt', url: 'https://www.producthunt.com/topics/artificial-intelligence', type: 'directory', confidence: 'medium' },
+  { name: 'Product Hunt SaaS', url: 'https://www.producthunt.com/topics/software-as-a-service', type: 'directory', confidence: 'medium' },
+  
+  // EU & International
+  { name: 'EU Startups Funding', url: 'https://www.eu-startups.com/category/funding/', type: 'news', confidence: 'medium' },
+  { name: 'Sifted', url: 'https://sifted.eu/articles/', type: 'news', confidence: 'medium' },
 ]
 
 const STARTUP_CRITERIA = {

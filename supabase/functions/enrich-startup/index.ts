@@ -414,13 +414,15 @@ Deno.serve(async (req) => {
       if (error) throw error
       startupsToEnrich = startups || []
     } else if (enrichAll) {
-      // Enrich startups - either all or only those without data
+      // Enrich startups - either all or only those without enrichment data
+      // Check for both legacy fields and new V3 fields to ensure complete enrichment
       let query = supabase
         .from('startups')
         .select('id, name, description, eli5, website, sectors, city, country, estimated_revenue, estimated_size, buzz_score')
 
       if (!forceReenrich) {
-        query = query.or('unicorn_probability.is.null,team_quality_score.is.null')
+        // Check for missing enrichment: either legacy fields or new ML scores
+        query = query.or('unicorn_probability.is.null,team_quality_score.is.null,unicorn_likelihood_score.is.null,hiring_velocity_score.is.null,founding_team_signal_score.is.null')
       }
 
       const { data: startups, error } = await query.limit(Math.min(batchSize, 100))

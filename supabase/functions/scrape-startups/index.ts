@@ -63,18 +63,30 @@ const STARTUP_CRITERIA = {
 }
 
 const NEWS_SOURCES = [
+  // US Tech News
   { name: 'TechCrunch Startups', url: 'https://techcrunch.com/category/startups/', confidence: 'high' },
   { name: 'TechCrunch Funding', url: 'https://techcrunch.com/tag/funding/', confidence: 'high' },
+  { name: 'TechCrunch Venture', url: 'https://techcrunch.com/category/venture/', confidence: 'high' },
   { name: 'VentureBeat Funding', url: 'https://venturebeat.com/category/business/deals/', confidence: 'high' },
   { name: 'Crunchbase Venture', url: 'https://news.crunchbase.com/venture/', confidence: 'high' },
   { name: 'Crunchbase Seed', url: 'https://news.crunchbase.com/seed/', confidence: 'high' },
-  { name: 'TechCrunch Venture', url: 'https://techcrunch.com/category/venture/', confidence: 'high' }
+  
+  // EU & International
+  { name: 'EU Startups Funding', url: 'https://www.eu-startups.com/category/funding/', confidence: 'medium' },
+  { name: 'Sifted', url: 'https://sifted.eu/articles/', confidence: 'medium' },
 ]
 
 const DIRECTORY_SOURCES = [
+  // Product Launch Platforms
   { name: 'Product Hunt AI', url: 'https://www.producthunt.com/topics/artificial-intelligence', confidence: 'medium' },
-  { name: 'Indie Hackers', url: 'https://www.indiehackers.com/products?revenue=5000-10000', confidence: 'medium' },
-  { name: 'Starter Story', url: 'https://www.starterstory.com/ideas', confidence: 'medium' }
+  { name: 'Product Hunt SaaS', url: 'https://www.producthunt.com/topics/software-as-a-service', confidence: 'medium' },
+  
+  // Bootstrapped / Indie Startup Sources
+  { name: 'Indie Hackers Products', url: 'https://www.indiehackers.com/products?revenue=5000-10000', confidence: 'medium' },
+  { name: 'Indie Hackers Interviews', url: 'https://www.indiehackers.com/interviews', confidence: 'high' },
+  { name: 'Starter Story', url: 'https://www.starterstory.com/stories', confidence: 'high' },
+  { name: 'Starter Story Ideas', url: 'https://www.starterstory.com/ideas', confidence: 'medium' },
+  { name: 'Startups Gallery', url: 'https://startups.gallery/', confidence: 'medium' },
 ]
 
 async function scrapeWithZyteArticle(url: string, apiKey: string): Promise<ZyteArticle | null> {
