@@ -482,7 +482,7 @@ export function useOrganization() {
     maxMembers,
     isUnlimitedMembers,
     
-    // Actions
+    // Actions (sync versions for UI)
     createOrganization: createOrganization.mutate,
     inviteMember: inviteMember.mutate,
     cancelInvite: cancelInvite.mutate,
@@ -490,6 +490,10 @@ export function useOrganization() {
     promoteMember: promoteMember.mutate,
     demoteMember: demoteMember.mutate,
     acceptInvite: acceptInvite.mutate,
+    
+    // Actions (async versions for awaiting)
+    createOrganizationAsync: createOrganization.mutateAsync,
+    inviteMemberAsync: inviteMember.mutateAsync,
     
     // Loading states
     isCreating: createOrganization.isPending,

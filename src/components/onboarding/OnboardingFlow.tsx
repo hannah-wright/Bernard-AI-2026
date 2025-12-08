@@ -109,7 +109,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { startups } = useStartups();
   const { createList } = useStartupLists();
   const { createAlert } = useAlerts();
-  const { inviteMember, createOrganization, organization } = useOrganization();
+  const { inviteMemberAsync, createOrganizationAsync, organization } = useOrganization();
 
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -117,7 +117,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   const [data, setData] = useState<OnboardingData>({
     sectors: [],
-    stages: [],
+    stages: ['all'], // Default to "All Stages"
     geos: [],
     listColor: 'blue',
     alertsEnabled: true,
@@ -267,16 +267,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         });
       }
 
-      // 5. Send team invite if provided
+      // 5. Send team invite if provided (non-blocking - don't fail onboarding if this fails)
       if (data.teamEmail?.trim()) {
-        // Create org if doesn't exist
-        if (!organization) {
-          await createOrganization(`${firstName}'s Team`);
+        try {
+          // Create org if doesn't exist
+          if (!organization) {
+            await createOrganizationAsync(`${firstName}'s Team`);
+            // Give time for org to be fully created and queries to refresh
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+          // Try to invite, but don't block onboarding completion
+          try {
+            await inviteMemberAsync({ email: data.teamEmail!, role: 'member' });
+          } catch (inviteErr) {
+            console.warn('Team invite failed during onboarding:', inviteErr);
+            // Don't fail - they can invite later from settings
+          }
+        } catch (orgErr) {
+          console.warn('Organization creation failed during onboarding:', orgErr);
+          // Don't fail onboarding - they can create org later from settings
         }
-        // Small delay to ensure org is created
-        setTimeout(() => {
-          inviteMember({ email: data.teamEmail!, role: 'member' });
-        }, 500);
       }
 
       await refreshProfile();
@@ -433,9 +443,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       </button>
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    💡 Select "All Stages" if you're stage-agnostic
-                  </p>
                 </div>
               )}
 
