@@ -9,13 +9,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 // Credit amounts per plan (monthly)
+// -1 indicates unlimited credits
 const PLAN_CREDITS: Record<string, number> = {
   'prod_TXoPZKDe4a3oSG': 500,   // Starter Monthly
   'prod_TXoPssn5zCmlc5': 500,   // Starter Annual
   'prod_TXoPYwpa9g662R': 1000,  // Growth Monthly
   'prod_TXoPBxijSeRR6U': 1000,  // Growth Annual
-  'prod_TXoPCC5z4kbhda': 1800,  // Scale Monthly
-  'prod_TXoQm30KS0qUD7': 1800,  // Scale Annual
+  'prod_TXoPCC5z4kbhda': -1,    // Scale Monthly (unlimited)
+  'prod_TXoQm30KS0qUD7': -1,    // Scale Annual (unlimited)
 };
 
 serve(async (req) => {
@@ -103,11 +104,16 @@ serve(async (req) => {
     const currentCredits = profile?.credits_remaining || 0;
     const oldPlanCredits = PLAN_CREDITS[oldProductId] || 0;
     const newPlanCredits = PLAN_CREDITS[newProductId] || 0;
+    const isUpgradingToUnlimited = newPlanCredits === -1;
 
-    // Calculate credit adjustment: add the difference between plans
-    // This gives the user the additional credits from the upgrade immediately
+    // Calculate credit adjustment
     let newCredits = currentCredits;
-    if (newPlanCredits > oldPlanCredits) {
+    if (isUpgradingToUnlimited) {
+      // Upgrading to Scale plan - set to high but reasonable value (resets monthly)
+      newCredits = 50000;
+      logStep("Upgrading to unlimited credits", { currentCredits, newCredits });
+    } else if (newPlanCredits > oldPlanCredits && oldPlanCredits !== -1) {
+      // Add the difference between plans
       const creditDifference = newPlanCredits - oldPlanCredits;
       newCredits = currentCredits + creditDifference;
       logStep("Adding upgrade credits", { currentCredits, creditDifference, newCredits });
@@ -125,7 +131,7 @@ serve(async (req) => {
       throw new Error(`Failed to update profile: ${updateError.message}`);
     }
 
-    logStep("Profile updated", { newProductId, newCredits });
+    logStep("Profile updated", { newProductId, credits: isUpgradingToUnlimited ? 'unlimited' : newCredits });
 
     // Log credit transaction if credits were added
     if (newCredits > currentCredits) {
