@@ -16,14 +16,12 @@ export interface Alert {
   id: string;
   userId: string;
   name: string;
-  description?: string;
   filters: Partial<FilterState>;
   isActive: boolean;
-  frequency: 'daily' | 'weekly' | 'instant';
-  lastSentAt?: string;
-  lastMatchCount: number;
+  notificationEmail: boolean;
+  notificationSlack: boolean;
+  slackWebhook?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface AlertMatch {
@@ -68,14 +66,12 @@ export function useAlerts() {
         id: a.id,
         userId: a.user_id,
         name: a.name,
-        description: a.description,
         filters: a.filters,
-        isActive: a.is_active,
-        frequency: a.frequency,
-        lastSentAt: a.last_sent_at,
-        lastMatchCount: a.last_match_count || 0,
+        isActive: a.is_active ?? true,
+        notificationEmail: a.notification_email ?? true,
+        notificationSlack: a.notification_slack ?? false,
+        slackWebhook: a.slack_webhook,
         createdAt: a.created_at,
-        updatedAt: a.updated_at,
       }));
     },
     enabled: !!user,
@@ -85,9 +81,8 @@ export function useAlerts() {
   const createAlert = useMutation({
     mutationFn: async (input: {
       name: string;
-      description?: string;
       filters: Partial<FilterState>;
-      frequency?: 'daily' | 'weekly' | 'instant';
+      notificationEmail?: boolean;
     }) => {
       if (!user) throw new Error('Must be logged in');
 
@@ -96,9 +91,9 @@ export function useAlerts() {
         .insert({
           user_id: user.id,
           name: input.name,
-          description: input.description,
           filters: input.filters,
-          frequency: input.frequency || 'daily',
+          is_active: true,
+          notification_email: input.notificationEmail ?? true,
         })
         .select()
         .single();
@@ -120,10 +115,9 @@ export function useAlerts() {
     mutationFn: async (input: {
       id: string;
       name?: string;
-      description?: string;
       filters?: Partial<FilterState>;
       isActive?: boolean;
-      frequency?: 'daily' | 'weekly' | 'instant';
+      notificationEmail?: boolean;
     }) => {
       if (!user) throw new Error('Must be logged in');
 
@@ -131,11 +125,9 @@ export function useAlerts() {
         .from('user_alerts')
         .update({
           ...(input.name && { name: input.name }),
-          ...(input.description !== undefined && { description: input.description }),
           ...(input.filters && { filters: input.filters }),
           ...(input.isActive !== undefined && { is_active: input.isActive }),
-          ...(input.frequency && { frequency: input.frequency }),
-          updated_at: new Date().toISOString(),
+          ...(input.notificationEmail !== undefined && { notification_email: input.notificationEmail }),
         })
         .eq('id', input.id)
         .eq('user_id', user.id)

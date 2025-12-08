@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Bell,
@@ -32,8 +31,6 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useStartups } from '@/hooks/useStartups';
-import { useStartupLists } from '@/hooks/useStartupLists';
-import { useAlerts } from '@/hooks/useAlerts';
 import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -103,12 +100,9 @@ const LIST_COLORS = [
 ];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, refreshProfile } = useProfile();
   const { startups } = useStartups();
-  const { createList } = useStartupLists();
-  const { createAlert } = useAlerts();
   const { inviteMemberAsync, createOrganizationAsync, organization } = useOrganization();
 
   const [step, setStep] = useState(1);
@@ -116,11 +110,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [matchedStartups, setMatchedStartups] = useState<typeof startups>([]);
   
   const [data, setData] = useState<OnboardingData>({
-    sectors: [],
+    sectors: ['all'], // Default to "All Industries"
     stages: ['all'], // Default to "All Stages"
     geos: [],
     listColor: 'blue',
-    alertsEnabled: true,
+    alertsEnabled: false, // Default to off to avoid issues
     alertFrequency: 'daily',
   });
 
@@ -222,8 +216,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       // Clean sectors (remove "all" if present)
       const cleanSectors = data.sectors.filter(s => s !== 'all');
 
-      // 1. Save profile data
-      await supabase.from('profiles').update({
+      // 1. Save profile data (CRITICAL - must succeed)
+      const { error: profileError } = await supabase.from('profiles').update({
         role: data.role,
         investment_sectors: cleanSectors.length > 0 ? cleanSectors : null,
         investment_stages: expandedStages.length > 0 ? expandedStages : null,
@@ -233,68 +227,91 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         onboarding_data: data,
       }).eq('id', user?.id);
 
-      // 2. Create saved filter from thesis (only if meaningful filters)
+      if (profileError) {
+        console.error('Profile update failed:', profileError);
+        throw new Error('Failed to save profile. Please try again.');
+      }
+
+      // 2. Create saved filter from thesis (non-blocking)
       if (cleanSectors.length > 0 || expandedStages.length > 0) {
-        await supabase.from('user_thesis_profiles').insert({
-          user_id: user?.id,
-          name: 'My Investment Thesis',
-          filters: {
-            sectors: cleanSectors,
-            roundTypes: expandedStages,
-            regions: data.geos.filter(g => g !== 'global'),
-          },
-        });
+        try {
+          await supabase.from('user_thesis_profiles').insert({
+            user_id: user?.id,
+            name: 'My Investment Thesis',
+            filters: {
+              sectors: cleanSectors,
+              roundTypes: expandedStages,
+              regions: data.geos.filter(g => g !== 'global'),
+            },
+          });
+        } catch (err) {
+          console.warn('Saved filter creation failed:', err);
+          // Non-blocking - user can create later
+        }
       }
 
-      // 3. Create list if name provided
+      // 3. Create list if name provided (non-blocking)
       if (data.listName?.trim()) {
-        createList({
-          name: data.listName,
-          color: LIST_COLORS.find(c => c.id === data.listColor)?.color || '#3B82F6',
-          visibility: 'private',
-        });
+        try {
+          // Use direct insert instead of mutation to avoid RLS issues
+          await supabase.from('startup_lists').insert({
+            name: data.listName,
+            color: LIST_COLORS.find(c => c.id === data.listColor)?.color || '#3B82F6',
+            owner_id: user?.id,
+            visibility: 'private',
+            icon: 'folder',
+            position: 0,
+          });
+        } catch (err) {
+          console.warn('List creation failed during onboarding:', err);
+          // Non-blocking - user can create later
+        }
       }
 
-      // 4. Create alert if enabled
+      // 4. Create alert if enabled (non-blocking)
       if (data.alertsEnabled) {
-        createAlert({
-          name: 'My Thesis Alerts',
-          filters: {
-            sectors: data.sectors,
-            roundTypes: data.stages,
-          },
-          frequency: data.alertFrequency || 'daily',
-        });
+        try {
+          // Insert directly - the table has: user_id, name, filters, is_active, notification_email
+          await supabase.from('user_alerts').insert({
+            user_id: user?.id,
+            name: 'My Thesis Alerts',
+            filters: {
+              sectors: cleanSectors,
+              roundTypes: expandedStages,
+              regions: data.geos.filter(g => g !== 'global'),
+            },
+            is_active: true,
+            notification_email: true,
+          });
+        } catch (err) {
+          console.warn('Alert creation failed during onboarding:', err);
+          // Non-blocking - user can create later from dashboard
+        }
       }
 
-      // 5. Send team invite if provided (non-blocking - don't fail onboarding if this fails)
+      // 5. Send team invite if provided (non-blocking)
       if (data.teamEmail?.trim()) {
         try {
           // Create org if doesn't exist
           if (!organization) {
             await createOrganizationAsync(`${firstName}'s Team`);
-            // Give time for org to be fully created and queries to refresh
+            // Give time for org to be fully created
             await new Promise(resolve => setTimeout(resolve, 1500));
           }
-          // Try to invite, but don't block onboarding completion
-          try {
-            await inviteMemberAsync({ email: data.teamEmail!, role: 'member' });
-          } catch (inviteErr) {
-            console.warn('Team invite failed during onboarding:', inviteErr);
-            // Don't fail - they can invite later from settings
-          }
-        } catch (orgErr) {
-          console.warn('Organization creation failed during onboarding:', orgErr);
-          // Don't fail onboarding - they can create org later from settings
+          await inviteMemberAsync({ email: data.teamEmail!, role: 'member' });
+        } catch (err) {
+          console.warn('Team invite failed during onboarding:', err);
+          // Non-blocking - user can invite later
         }
       }
 
+      // Refresh profile and complete
       await refreshProfile();
       toast.success('Welcome to BernardAI! 🚀');
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Onboarding error:', error);
-      toast.error('Something went wrong. Please try again.');
+      toast.error(error.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
