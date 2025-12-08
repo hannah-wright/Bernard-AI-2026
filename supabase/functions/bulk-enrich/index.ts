@@ -136,8 +136,12 @@ Provide JSON response (no markdown, no code blocks, just raw JSON):
     }
   ],
   "headcount": {
-    "current": <number>,
-    "growth_yoy_pct": <number or null>,
+    "current": <total employees>,
+    "engineering_count": <number of engineers>,
+    "sales_count": <number of sales people>,
+    "marketing_count": <number of marketers>,
+    "executive_hires": <executive hires in last 12 months>,
+    "growth_yoy_pct": <percent growth YoY>,
     "source": "<where you found this>"
   },
   "scores": {
@@ -151,6 +155,20 @@ Provide JSON response (no markdown, no code blocks, just raw JSON):
     "structure_type": "<solo-technical|solo-commercial|technical-ceo-commercial-coo|balanced-cofounders|technical-heavy|commercial-heavy>",
     "cofounders_worked_together": <boolean or null>,
     "has_prior_exit": <boolean>,
+    "has_cto": <boolean>,
+    "has_vp_sales": <boolean>,
+    "has_ciso": <boolean>,
+    "technical_cofounder": <boolean>,
+    "avg_years_experience": <average years of founder experience>,
+    "founders": [
+      {
+        "name": "<founder name>",
+        "role": "<CEO|CTO|COO|etc>",
+        "education": ["<school name>"],
+        "notable_employers": ["<previous company names - FAANG, unicorns, etc>"],
+        "years_in_industry": <number>
+      }
+    ],
     "prior_exits": [
       {
         "company_name": "<name>",
@@ -161,6 +179,8 @@ Provide JSON response (no markdown, no code blocks, just raw JSON):
       }
     ]
   },
+  "incumbent_threats": ["<large companies that could compete>"],
+  "competitive_advantages": ["<moats and advantages>"],
   "data_sources_used": ["<list of sources you used to gather this data>"]
 }
 
@@ -405,6 +425,38 @@ Deno.serve(async (req) => {
         if (team.has_prior_exit !== undefined) updateData.has_prior_exit = team.has_prior_exit
         if (team.prior_exits && Array.isArray(team.prior_exits) && team.prior_exits.length > 0) {
           updateData.prior_exits = team.prior_exits
+        }
+        
+        // Save full founder_background JSONB
+        if (team.founders || team.technical_cofounder !== undefined) {
+          updateData.founder_background = {
+            founders: team.founders || [],
+            technical_cofounder: team.technical_cofounder || false,
+            avg_years_experience: team.avg_years_experience || null,
+          }
+        }
+      }
+      
+      // Team composition data (from headcount section)
+      if (headcount) {
+        updateData.team_composition = {
+          total_employees: headcount.current || null,
+          engineering_count: headcount.engineering_count || null,
+          sales_count: headcount.sales_count || null,
+          marketing_count: headcount.marketing_count || null,
+          has_cto: team?.has_cto || null,
+          has_vp_sales: team?.has_vp_sales || null,
+          has_ciso: team?.has_ciso || null,
+          executive_hires_last_12_mo: headcount.executive_hires || null,
+        }
+      }
+      
+      // Competitive landscape
+      if (enrichment.competitors && Array.isArray(enrichment.competitors) && enrichment.competitors.length > 0) {
+        updateData.competitive_landscape = {
+          direct_competitors: enrichment.competitors,
+          incumbent_threats: enrichment.incumbent_threats || [],
+          competitive_advantages: enrichment.competitive_advantages || [],
         }
       }
 

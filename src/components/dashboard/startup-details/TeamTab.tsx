@@ -38,15 +38,56 @@ export const TeamTab = ({ startup }: StartupDetailTabProps) => {
 
   return (
     <div className="space-y-6 mt-4">
-      {/* Founding Team Signal Profile - NEW */}
-      {startup.foundingTeamSignal && (
+      {/* Founding Team Section - Founders FIRST */}
+      {startup.founderBackground?.founders?.length ? (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <SectionTitle tooltip="Composite score based on prior exits, FAANG experience, network strength, and team dynamics. Higher scores correlate with better outcomes.">
-              Founding Team Signal
+            <SectionTitle tooltip="Key founders and their backgrounds. Strong founders with prior exits or FAANG experience correlate with better outcomes.">
+              Founding Team
             </SectionTitle>
             <MultiSourceBadge count={startup.dataSources?.length || 3} />
           </div>
+          <div className="space-y-3">
+            {startup.founderBackground.founders.map((founder, idx) => (
+              <div key={idx} className="rounded-lg bg-secondary/30 p-4">
+                <div className="flex items-start justify-between">
+                  <p className="font-medium text-foreground text-lg">{founder.name}</p>
+                  {founder.role && (
+                    <Badge variant="outline" className="text-xs">{founder.role}</Badge>
+                  )}
+                </div>
+                <div className="mt-2 space-y-1">
+                  {founder.years_in_industry && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Briefcase className="h-3 w-3" />
+                      {founder.years_in_industry} years in industry
+                    </p>
+                  )}
+                  {founder.notable_employers?.length ? (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {founder.notable_employers.slice(0, 3).join(', ')}
+                    </p>
+                  ) : null}
+                  {founder.education?.length ? (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      {founder.education.slice(0, 2).join(', ')}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Founding Team Signal Score */}
+      {startup.foundingTeamSignal && (
+        <div>
+          <SectionTitle tooltip="Composite score based on prior exits, FAANG experience, network strength, and team dynamics.">
+            Team Signal Score
+          </SectionTitle>
           <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4 space-y-4">
             {/* Main Score */}
             <div className="flex items-center justify-between">
@@ -198,51 +239,6 @@ export const TeamTab = ({ startup }: StartupDetailTabProps) => {
         </div>
       )}
 
-      {/* Founders */}
-      {startup.founderBackground?.founders?.length ? (
-        <div>
-          <SectionTitle>Founders</SectionTitle>
-          <div className="space-y-3">
-            {startup.founderBackground.founders.map((founder, idx) => (
-              <div key={idx} className="rounded-lg bg-secondary/30 p-4">
-                <div className="flex items-start justify-between">
-                  <p className="font-medium text-foreground">{founder.name}</p>
-                  {founder.role && (
-                    <Badge variant="outline" className="text-xs">{founder.role}</Badge>
-                  )}
-                </div>
-                {founder.years_in_industry && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                    <Briefcase className="h-3 w-3" />
-                    {founder.years_in_industry} years in industry
-                  </p>
-                )}
-                {founder.notable_employers?.length ? (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                    <Building2 className="h-3 w-3" />
-                    {founder.notable_employers.slice(0, 3).join(', ')}
-                  </p>
-                ) : null}
-                {founder.education?.length ? (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                    <GraduationCap className="h-3 w-3" />
-                    {founder.education.slice(0, 2).join(', ')}
-                  </p>
-                ) : null}
-                {founder.prior_startups?.length ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {founder.prior_startups.slice(0, 3).map((ps, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">
-                        {ps.name} {ps.outcome && `(${ps.outcome})`}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {/* Team Composition */}
       {startup.teamComposition && (
