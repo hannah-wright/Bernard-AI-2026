@@ -37,14 +37,15 @@ export const TRIAL_CONFIG = {
 /**
  * Plan credits by Stripe product ID
  * Used in: stripe-webhook edge function
+ * -1 indicates unlimited credits
  */
 export const PLAN_CREDITS_BY_PRODUCT = {
   'prod_TXoPZKDe4a3oSG': 500,   // Starter Monthly
   'prod_TXoPssn5zCmlc5': 500,   // Starter Annual
   'prod_TXoPYwpa9g662R': 1000,  // Growth Monthly
   'prod_TXoPBxijSeRR6U': 1000,  // Growth Annual
-  'prod_TXoPCC5z4kbhda': 1800,  // Scale Monthly
-  'prod_TXoQm30KS0qUD7': 1800,  // Scale Annual
+  'prod_TXoPCC5z4kbhda': -1,    // Scale Monthly (unlimited)
+  'prod_TXoQm30KS0qUD7': -1,    // Scale Annual (unlimited)
 } as const;
 
 /**

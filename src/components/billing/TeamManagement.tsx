@@ -573,7 +573,7 @@ export const TeamManagement = () => {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
-                  1,800 credits/month
+                  Unlimited credits
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />

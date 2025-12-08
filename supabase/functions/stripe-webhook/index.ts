@@ -8,13 +8,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 // Credit amounts per plan (monthly)
+// -1 indicates unlimited credits
 const PLAN_CREDITS: Record<string, number> = {
   'prod_TXoPZKDe4a3oSG': 500,   // Starter Monthly
   'prod_TXoPssn5zCmlc5': 500,   // Starter Annual
   'prod_TXoPYwpa9g662R': 1000,  // Growth Monthly
   'prod_TXoPBxijSeRR6U': 1000,  // Growth Annual
-  'prod_TXoPCC5z4kbhda': 1800,  // Scale Monthly
-  'prod_TXoQm30KS0qUD7': 1800,  // Scale Annual
+  'prod_TXoPCC5z4kbhda': -1,    // Scale Monthly (unlimited)
+  'prod_TXoQm30KS0qUD7': -1,    // Scale Annual (unlimited)
 };
 
 // Credit pack amounts
@@ -116,27 +117,31 @@ serve(async (req) => {
           const productId = subscription.items.data[0]?.price.product as string;
           const userId = session.client_reference_id;
           const creditsToAdd = PLAN_CREDITS[productId] || 0;
+          const isUnlimited = creditsToAdd === -1;
 
-          if (userId && creditsToAdd > 0) {
+          if (userId && (creditsToAdd > 0 || isUnlimited)) {
+            // For unlimited plans, set a high but reasonable credit value (resets monthly)
+            const creditsValue = isUnlimited ? 50000 : creditsToAdd;
+            
             // Use admin_update_profile function to bypass security trigger
             const { error: updateError } = await supabase.rpc('admin_update_profile', {
               target_user_id: userId,
-              new_credits: creditsToAdd,
+              new_credits: creditsValue,
               new_tier: productId
             });
 
             if (updateError) {
               logStep("ERROR updating profile", { error: updateError.message });
             } else {
-              logStep("Credits set for new subscription", { userId, productId, creditsToAdd });
+              logStep("Credits set for new subscription", { userId, productId, credits: isUnlimited ? 'unlimited' : creditsToAdd });
             }
 
             // Log transaction
             await supabase.from("credit_transactions").insert({
               user_id: userId,
-              amount: creditsToAdd,
+              amount: isUnlimited ? 0 : creditsToAdd,
               type: "subscription_start",
-              description: `Subscription started - ${creditsToAdd} credits`,
+              description: isUnlimited ? `Scale plan activated - Unlimited credits` : `Subscription started - ${creditsToAdd} credits`,
               stripe_subscription_id: subscription.id,
             });
           }
@@ -152,10 +157,11 @@ serve(async (req) => {
           const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
           const productId = subscription.items.data[0]?.price.product as string;
           const creditsToAdd = PLAN_CREDITS[productId] || 0;
+          const isUnlimited = creditsToAdd === -1;
 
           // Get user by customer email
           const customerEmail = invoice.customer_email;
-          if (customerEmail && creditsToAdd > 0) {
+          if (customerEmail && (creditsToAdd > 0 || isUnlimited)) {
             const { data: profile } = await supabase
               .from("profiles")
               .select("id, credits_remaining")
@@ -163,8 +169,8 @@ serve(async (req) => {
               .maybeSingle();
 
             if (profile) {
-              // Add credits to existing balance
-              const newCredits = (profile.credits_remaining || 0) + creditsToAdd;
+              // For unlimited plans, reset to high value; otherwise add to existing
+              const newCredits = isUnlimited ? 50000 : (profile.credits_remaining || 0) + creditsToAdd;
 
               // Use admin_update_profile function to bypass security trigger
               const { error: updateError } = await supabase.rpc('admin_update_profile', {
@@ -178,7 +184,7 @@ serve(async (req) => {
                 logStep("Credits added for renewal", { 
                   userId: profile.id, 
                   productId, 
-                  creditsToAdd,
+                  credits: isUnlimited ? 'unlimited' : creditsToAdd,
                   newCredits 
                 });
               }
@@ -186,9 +192,9 @@ serve(async (req) => {
               // Log transaction
               await supabase.from("credit_transactions").insert({
                 user_id: profile.id,
-                amount: creditsToAdd,
+                amount: isUnlimited ? 0 : creditsToAdd,
                 type: "subscription_renewal",
-                description: `Monthly renewal - ${creditsToAdd} credits added`,
+                description: isUnlimited ? `Scale plan renewed - Unlimited credits` : `Monthly renewal - ${creditsToAdd} credits added`,
                 stripe_subscription_id: subscription.id,
               });
             }
