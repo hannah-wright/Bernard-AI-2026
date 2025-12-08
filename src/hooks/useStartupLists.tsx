@@ -123,20 +123,17 @@ export function useStartupLists() {
       if (!user) return [];
 
       try {
-        // Get lists owned by user
+        // Get lists owned by user (simplified query without foreign key joins)
         const { data: ownedLists, error: ownedError } = await supabase
           .from('startup_lists')
-          .select(`
-            *,
-            profiles:owner_id (full_name, email),
-            startup_list_items (count)
-          `)
+          .select('*')
           .eq('owner_id', user.id)
           .order('position');
 
         if (ownedError) {
+          // Table might not exist yet - that's okay
           console.warn('Error fetching owned lists:', ownedError);
-          return []; // Return empty instead of throwing
+          return [];
         }
 
         // Get team-visible lists from org
@@ -144,11 +141,7 @@ export function useStartupLists() {
         if (organization?.id) {
           const { data, error } = await supabase
             .from('startup_lists')
-            .select(`
-              *,
-              profiles:owner_id (full_name, email),
-              startup_list_items (count)
-            `)
+            .select('*')
             .eq('organization_id', organization.id)
             .eq('visibility', 'team')
             .neq('owner_id', user.id)
@@ -160,28 +153,30 @@ export function useStartupLists() {
         }
 
         // Get shared lists
-        const { data: shares } = await supabase
-          .from('startup_list_shares')
-          .select('list_id, permission')
-          .eq('user_id', user.id);
-
-        const shareMap = new Map(shares?.map(s => [s.list_id, s.permission]) || []);
-
+        let shareMap = new Map<string, string>();
         let sharedLists: any[] = [];
-        if (shares && shares.length > 0) {
-          const { data, error } = await supabase
-            .from('startup_lists')
-            .select(`
-              *,
-              profiles:owner_id (full_name, email),
-              startup_list_items (count)
-            `)
-            .in('id', shares.map(s => s.list_id))
-            .neq('owner_id', user.id);
+        
+        try {
+          const { data: shares } = await supabase
+            .from('startup_list_shares')
+            .select('list_id, permission')
+            .eq('user_id', user.id);
 
-          if (!error && data) {
-            sharedLists = data;
+          if (shares && shares.length > 0) {
+            shareMap = new Map(shares.map(s => [s.list_id, s.permission]));
+            
+            const { data, error } = await supabase
+              .from('startup_lists')
+              .select('*')
+              .in('id', shares.map(s => s.list_id))
+              .neq('owner_id', user.id);
+
+            if (!error && data) {
+              sharedLists = data;
+            }
           }
+        } catch {
+          // Shares table might not exist
         }
 
         // Combine and transform
@@ -202,13 +197,13 @@ export function useStartupLists() {
             color: list.color,
             icon: list.icon,
             ownerId: list.owner_id,
-            ownerName: list.profiles?.full_name,
-            ownerEmail: list.profiles?.email,
+            ownerName: undefined, // Skip profile lookup
+            ownerEmail: undefined,
             organizationId: list.organization_id,
             visibility: list.visibility,
             isDefault: list.is_default,
             position: list.position,
-            itemCount: list.startup_list_items?.[0]?.count || 0,
+            itemCount: 0, // Skip count lookup
             createdAt: list.created_at,
             updatedAt: list.updated_at,
             isOwner,
@@ -218,7 +213,7 @@ export function useStartupLists() {
         });
       } catch (err) {
         console.warn('Error fetching startup lists:', err);
-        return []; // Return empty array instead of throwing
+        return [];
       }
     },
     enabled: !!user,

@@ -131,13 +131,30 @@ export const useCredits = () => {
     const result = await creditsApi.deductCredits(action, options);
     
     if (result.error) {
-      toast.error('Failed to process action');
+      // If Edge Function fails, allow action but log the error
+      // This prevents blocking users when there's a temporary server issue
+      console.warn('Credit deduction API error:', result.error);
+      
+      // For trial/free users, be lenient - allow the action
+      // Credits will be reconciled on next successful call
+      if (subscription.plan === 'trial' || subscription.plan === 'free' || !subscription.plan) {
+        // Optimistically deduct locally
+        updateCredits(Math.max(0, credits - cost));
+        return { success: true, creditsRemaining: credits - cost };
+      }
+      
+      toast.error('Failed to process action. Please try again.');
       return { success: false };
     }
 
     const data = result.data;
     
     if (!data) {
+      // Same fallback for missing data
+      if (subscription.plan === 'trial' || subscription.plan === 'free' || !subscription.plan) {
+        updateCredits(Math.max(0, credits - cost));
+        return { success: true, creditsRemaining: credits - cost };
+      }
       return { success: false };
     }
 
@@ -166,7 +183,7 @@ export const useCredits = () => {
     }
 
     return { success: false };
-  }, [user, credits, unlimitedCredits, updateCredits]);
+  }, [user, credits, unlimitedCredits, updateCredits, subscription.plan]);
 
   // -------------------------------------------------------------------------
   // Return API

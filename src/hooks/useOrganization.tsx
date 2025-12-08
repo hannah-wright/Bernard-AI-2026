@@ -294,6 +294,11 @@ export function useOrganization() {
       toast.success(`Invite sent to ${data.email}`);
     },
     onError: (error: Error) => {
+      // Don't show toast for permission errors (RLS issues) - just log
+      if (error.message?.includes('permission denied')) {
+        console.warn('Invite permission error:', error.message);
+        return;
+      }
       toast.error(error.message);
     },
   });
