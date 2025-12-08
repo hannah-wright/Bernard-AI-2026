@@ -52,16 +52,18 @@ const Index = () => {
   } = useCredits();
   const { needsOnboarding, isLoading: onboardingLoading } = useOnboarding();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
   const [showCustomExport, setShowCustomExport] = useState(false);
 
-  // Show onboarding for new users
+  // Show onboarding for new users (but not if they just completed it)
   useEffect(() => {
-    if (!onboardingLoading && needsOnboarding) {
+    if (!onboardingLoading && needsOnboarding && !onboardingJustCompleted) {
       setShowOnboarding(true);
     }
-  }, [needsOnboarding, onboardingLoading]);
+  }, [needsOnboarding, onboardingLoading, onboardingJustCompleted]);
 
   const handleOnboardingComplete = () => {
+    setOnboardingJustCompleted(true); // Prevent useEffect from re-showing onboarding
     setShowOnboarding(false);
   };
 

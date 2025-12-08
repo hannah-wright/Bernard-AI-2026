@@ -243,10 +243,11 @@ export function useOrganization() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization'] });
-      toast.success('Organization created');
+      // Silent success - no toast needed for org creation
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      console.warn('Organization creation error:', error.message);
+      // Silent error - don't show toast for org creation failures
     },
   });
 
