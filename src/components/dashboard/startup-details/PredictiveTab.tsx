@@ -18,23 +18,50 @@ export const PredictiveTab = ({ startup }: StartupDetailTabProps) => {
     return order[source.confidence] > order[highest] ? source.confidence : highest;
   }, 'low' as ConfidenceLevel);
 
-  const hasAiScores = startup.unicornProbability || startup.teamQualityScore || 
-                       startup.productMarketFitScore || startup.investmentReadinessScore;
+  // Use unicornLikelihoodScore (new) or fall back to unicornProbability (old)
+  const unicornScore = startup.unicornLikelihoodScore ?? startup.unicornProbability;
+  const hasAiScores = unicornScore || startup.teamQualityScore || 
+                       startup.productMarketFitScore || startup.investmentReadinessScore ||
+                       startup.foundingTeamSignal?.score || startup.hiringVelocityScore;
 
   return (
     <div className="space-y-6 mt-4">
-      {/* AI Scores */}
-      {hasAiScores && (
+      {/* Unicorn Likelihood - Featured */}
+      {unicornScore && (
+        <div className="rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                Unicorn Likelihood Score
+              </p>
+              <p className="text-xs text-muted-foreground">Based on traction, market size, founder pedigree, and backer track record</p>
+            </div>
+            <div className="text-right">
+              <span className={cn(
+                "text-4xl font-bold",
+                unicornScore >= 90 ? "text-amber-500" :
+                unicornScore >= 70 ? "text-emerald-500" :
+                unicornScore >= 50 ? "text-blue-500" : "text-muted-foreground"
+              )}>
+                {unicornScore}
+              </span>
+              <span className="text-lg text-muted-foreground">/100</span>
+              {startup.is10xBet && (
+                <p className="text-xs text-amber-500 font-medium mt-1">⭐ 10x Bet Candidate</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Other AI Scores */}
+      {(startup.teamQualityScore || startup.productMarketFitScore || startup.investmentReadinessScore) && (
         <div>
           <SectionTitle tooltip="AI-generated scores based on analysis of public data. These are predictive estimates, not guarantees.">
-            AI Scores
+            Additional Scores
           </SectionTitle>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <ScoreBadge 
-              score={startup.unicornProbability} 
-              label="Unicorn Prob." 
-              tooltip={methodologyText.unicornProbability.detail} 
-            />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <ScoreBadge 
               score={startup.teamQualityScore} 
               label="Team Quality" 

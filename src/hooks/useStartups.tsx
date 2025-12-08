@@ -325,6 +325,32 @@ export function useStartupSearch(searchQuery: string) {
       if (startupsError) throw startupsError;
       if (!startups || startups.length === 0) return [];
 
+      // Sort results by relevance: exact name match > starts with > contains
+      const queryLower = searchQuery.toLowerCase();
+      startups.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        
+        // Exact match comes first
+        if (aName === queryLower && bName !== queryLower) return -1;
+        if (bName === queryLower && aName !== queryLower) return 1;
+        
+        // Starts with query comes second
+        const aStartsWith = aName.startsWith(queryLower);
+        const bStartsWith = bName.startsWith(queryLower);
+        if (aStartsWith && !bStartsWith) return -1;
+        if (bStartsWith && !aStartsWith) return 1;
+        
+        // Name contains query comes third (vs description/location match)
+        const aContainsInName = aName.includes(queryLower);
+        const bContainsInName = bName.includes(queryLower);
+        if (aContainsInName && !bContainsInName) return -1;
+        if (bContainsInName && !aContainsInName) return 1;
+        
+        // If same relevance, sort alphabetically
+        return aName.localeCompare(bName);
+      });
+
       // Fetch funding rounds for search results
       const { data: fundingRounds } = await supabase
         .from('funding_rounds')
