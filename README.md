@@ -131,7 +131,7 @@ Edge functions are deployed automatically when code is pushed. Functions are loc
 
 ### Scraping (2x daily: 8am/8pm PST)
 1. `scrape-startups` function runs via cron
-2. Sources: TechCrunch, VentureBeat, Startups.gallery, etc.
+2. Sources: TechCrunch, SEC Filings, StarterStory, ProductHunt, VentureBeat, Startups.gallery, etc.
 3. Uses Zyte API for automatic data extraction
 4. Detects new startups and funding round updates
 
@@ -149,7 +149,7 @@ Edge functions are deployed automatically when code is pushed. Functions are loc
 |------|-----------------|-------|
 | Starter | 500 | $249/mo |
 | Growth | 1,000 | $499/mo |
-| Scale | 1,800 | $899/mo |
+| Scale | Unlimited | $899/mo |
 
 ### Stripe Events Handled
 - `checkout.session.completed` - New subscription
