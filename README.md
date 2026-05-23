@@ -1,5 +1,7 @@
 # BernardAI - Startup VC Intelligence Platform
 
+![BernardAI Dashboard](docs/screenshots/dashboard.png)
+
 A VC-focused startup intelligence SaaS platform built with React, TypeScript, and Supabase.
 
 ## Tech Stack
